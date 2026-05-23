@@ -54,6 +54,7 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {colleges.map((college) => (
             <CollegeCard
+              id={college.id}
               key={college.id}
               name={college.name}
               location={college.location}

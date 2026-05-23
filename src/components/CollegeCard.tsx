@@ -1,4 +1,6 @@
+import Link from "next/link";
 type CollegeCardProps = {
+  id: string;
   name: string;
   location: string;
   fees: number;
@@ -7,14 +9,16 @@ type CollegeCardProps = {
 };
 
 export default function CollegeCard({
+  id,
   name,
   location,
   fees,
   rating,
   placements,
 }: CollegeCardProps) {
-  return (
-    <div className="bg-white rounded-xl shadow-md p-5">
+ return (
+  <Link href={`/college/${id}`}>
+    <div className="bg-white rounded-xl shadow-md p-5 hover:shadow-xl transition cursor-pointer">
       <h3 className="text-2xl font-semibold mb-2">
         {name}
       </h3>
@@ -35,5 +39,6 @@ export default function CollegeCard({
         📈 Placements: {placements}
       </p>
     </div>
-  );
+  </Link>
+);
 }
