@@ -3,14 +3,14 @@ import { NextResponse } from "next/server";
 
 export async function GET(
   request: Request,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = context.params.id;
+    const params = await context.params;
 
-    const college = await prisma.college.findFirst({
+    const college = await prisma.college.findUnique({
       where: {
-        id: id,
+        id: params.id,
       },
     });
 
@@ -22,6 +22,7 @@ export async function GET(
     }
 
     return NextResponse.json(college);
+
   } catch (error) {
     console.error(error);
 

@@ -1,4 +1,5 @@
 import Link from "next/link";
+
 type CollegeCardProps = {
   id: string;
   name: string;
@@ -16,29 +17,50 @@ export default function CollegeCard({
   rating,
   placements,
 }: CollegeCardProps) {
- return (
-  <Link href={`/college/${id}`}>
-    <div className="bg-white rounded-xl shadow-md p-5 hover:shadow-xl transition cursor-pointer">
-      <h3 className="text-2xl font-semibold mb-2">
-        {name}
-      </h3>
+  return (
+    <Link href={`/college/${id}`}>
+      <div className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition duration-300 cursor-pointer border border-gray-200">
+        
+   <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6">
+  <h2 className="text-white text-3xl font-bold">
+    {name}
+  </h2>
+</div>
 
-      <p className="text-gray-600">
-        📍 {location}
-      </p>
+        {/* CONTENT */}
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-4">
+            <span className="text-gray-600">
+              📍 {location}
+            </span>
 
-      <p className="mt-2">
-        💰 Fees: ₹{fees}
-      </p>
+            <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
+              ⭐ {rating}
+            </span>
+          </div>
 
-      <p>
-        ⭐ Rating: {rating}
-      </p>
+          <div className="space-y-3 text-gray-700">
+            <p>
+              💰 <span className="font-semibold">Fees:</span> ₹{fees}
+            </p>
 
-      <p>
-        📈 Placements: {placements}
-      </p>
-    </div>
-  </Link>
-);
+            <p>
+              📈 <span className="font-semibold">Placements:</span>{" "}
+              {placements}
+            </p>
+          </div>
+
+          <div className="mt-6 flex gap-3">
+            <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
+              View Details
+            </button>
+
+            <button className="border border-gray-300 px-4 py-2 rounded-lg text-sm text-black">
+              Compare
+            </button>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
 }
