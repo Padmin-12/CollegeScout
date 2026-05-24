@@ -56,11 +56,17 @@ export default function Home() {
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
 
-  // Debounce search
+  // Debounce search — skip on initial mount so colleges load immediately
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const isFirstRender = useRef(true);
 
   useEffect(() => {
+    // Skip debounce on first render — fetchColleges already runs on mount
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
     searchTimeout.current = setTimeout(() => {
       setDebouncedSearch(search);
