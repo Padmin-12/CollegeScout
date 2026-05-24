@@ -7,6 +7,7 @@ type CollegeCardProps = {
   fees: number;
   rating: number;
   placements: string;
+   isSaved: boolean;
 };
 
 export default function CollegeCard({
@@ -16,6 +17,7 @@ export default function CollegeCard({
   fees,
   rating,
   placements,
+   isSaved,
 }: CollegeCardProps) {
   return (
     <Link href={`/college/${id}`}>
