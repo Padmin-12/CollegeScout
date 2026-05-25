@@ -1,22 +1,18 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import SessionWrapper from "@/components/SessionWrapper";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "CollegeScout — Discover Your Ideal Engineering College",
+  title: "CollegeScout — Discover Your Ideal College in India",
   description:
-    "Search, compare, and evaluate top Indian engineering colleges based on fees, placements, ratings, and exam cutoffs. Make smarter admission decisions with CollegeScout.",
+    "Search, compare, and shortlist top Indian colleges. Smart admission predictor, placement data, and personalised scoring. Discover → Shortlist → Compare → Decide.",
 };
 
 export default function RootLayout({
@@ -25,11 +21,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-gray-50">
+    <html lang="en" className={inter.className}>
+      <body style={{ minHeight: "100vh", background: "#fff", margin: 0 }}>
         <SessionWrapper>{children}</SessionWrapper>
       </body>
     </html>

@@ -2,67 +2,112 @@ import Link from "next/link";
 
 type CollegeCardProps = {
   id: string;
+  slug: string;
   name: string;
-  location: string;
-  fees: number;
-  rating: number;
-  placements: string;
-   isSaved: boolean;
+  city: string;
+  state: string;
+  type: "GOVT" | "PRIVATE" | "DEEMED";
+  streams: string[];
+  nirfRank: number | null;
+  minAnnualFee: number | null;
+  avgPackage: number | null;
+  placementPct: number | null;
+  isSaved: boolean;
+  onSaveToggle: (id: string, save: boolean) => void;
+};
+
+const TYPE_LABEL: Record<string, string> = {
+  GOVT:    "Government",
+  PRIVATE: "Private",
+  DEEMED:  "Deemed",
 };
 
 export default function CollegeCard({
   id,
+  slug,
   name,
-  location,
-  fees,
-  rating,
-  placements,
-   isSaved,
+  city,
+  state,
+  type,
+  streams,
+  nirfRank,
+  minAnnualFee,
+  avgPackage,
+  placementPct,
+  isSaved,
+  onSaveToggle,
 }: CollegeCardProps) {
   return (
-    <Link href={`/college/${id}`}>
-      <div className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition duration-300 cursor-pointer border border-gray-200">
-        
-   <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6">
-  <h2 className="text-white text-3xl font-bold">
-    {name}
-  </h2>
-</div>
+    <div className="college-card">
+      {/* NIRF badge */}
+      {nirfRank && (
+        <div className="nirf-badge">NIRF #{nirfRank}</div>
+      )}
 
-        {/* CONTENT */}
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-4">
-            <span className="text-gray-600">
-              📍 {location}
-            </span>
+      <div className="card-body">
+        {/* Header */}
+        <div className="card-header">
+          <Link href={`/colleges/${slug}`} className="card-title">
+            {name}
+          </Link>
+          <span className="type-chip">{TYPE_LABEL[type] ?? type}</span>
+        </div>
 
-            <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
-              ⭐ {rating}
+        {/* Location */}
+        <p className="card-location">
+          {city}, {state}
+        </p>
+
+        {/* Streams */}
+        {streams.length > 0 && (
+          <div className="stream-tags">
+            {streams.slice(0, 2).map((s) => (
+              <span key={s} className="stream-tag">{s}</span>
+            ))}
+          </div>
+        )}
+
+        {/* Stats row */}
+        <div className="card-stats">
+          <div className="stat">
+            <span className="stat-label">Avg Package</span>
+            <span className="stat-value">
+              {avgPackage != null ? `₹${avgPackage} LPA` : "N/A"}
             </span>
           </div>
-
-          <div className="space-y-3 text-gray-700">
-            <p>
-              💰 <span className="font-semibold">Fees:</span> ₹{fees}
-            </p>
-
-            <p>
-              📈 <span className="font-semibold">Placements:</span>{" "}
-              {placements}
-            </p>
+          <div className="stat">
+            <span className="stat-label">Placed</span>
+            <span className="stat-value">
+              {placementPct != null ? `${placementPct}%` : "N/A"}
+            </span>
           </div>
-
-          <div className="mt-6 flex gap-3">
-            <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
-              View Details
-            </button>
-
-            <button className="border border-gray-300 px-4 py-2 rounded-lg text-sm text-black">
-              Compare
-            </button>
+          <div className="stat">
+            <span className="stat-label">Min Fees</span>
+            <span className="stat-value">
+              {minAnnualFee != null
+                ? `₹${(minAnnualFee / 100000).toFixed(1)}L/yr`
+                : "N/A"}
+            </span>
           </div>
         </div>
+
+        {/* Actions */}
+        <div className="card-actions">
+          <Link href={`/colleges/${slug}`} className="btn-primary">
+            View Details
+          </Link>
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              onSaveToggle(id, !isSaved);
+            }}
+            className={isSaved ? "btn-saved" : "btn-save"}
+            aria-label={isSaved ? "Remove from shortlist" : "Add to shortlist"}
+          >
+            {isSaved ? "★ Shortlisted" : "☆ Shortlist"}
+          </button>
+        </div>
       </div>
-    </Link>
+    </div>
   );
 }

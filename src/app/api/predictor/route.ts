@@ -1,65 +1,104 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
+// GET /api/predictor?exam=JEE Advanced&percentile=95&category=General
 export async function GET(req: NextRequest) {
   try {
-    const searchParams = req.nextUrl.searchParams;
-    const exam = searchParams.get("exam") || "";
-    const rank = parseInt(searchParams.get("rank") || "0", 10);
-    const branch = searchParams.get("branch") || "";
+    const sp         = req.nextUrl.searchParams;
+    const exam       = sp.get("exam")       ?? "";
+    const percentile = parseFloat(sp.get("percentile") ?? "0");
+    const category   = sp.get("category")  ?? "General";
 
-    if (!exam || !rank) {
+    if (!exam || !percentile) {
       return NextResponse.json(
-        { error: "exam and rank are required" },
+        { error: "exam and percentile are required" },
         { status: 400 }
       );
     }
 
-    // Fetch all colleges whose examCutoff mentions the selected exam
-    const allEligible = await prisma.college.findMany({
+    // Get all colleges that have cutoffs for this exam
+    const colleges = await prisma.college.findMany({
       where: {
-        examCutoff: {
-          contains: exam,
-          mode: "insensitive",
-        },
-        ...(branch
-          ? { courses: { contains: branch, mode: "insensitive" } }
-          : {}),
+        admissionCutoffs: { some: { exam: { contains: exam, mode: "insensitive" } } },
       },
-      orderBy: { rating: "desc" },
+      include: {
+        admissionCutoffs: {
+          where: {
+            exam:     { contains: exam, mode: "insensitive" },
+            category: { contains: category, mode: "insensitive" },
+          },
+          orderBy: { year: "desc" },
+        },
+        placementStats: {
+          orderBy: { year: "desc" },
+          take: 1,
+        },
+        courseFees: {
+          orderBy: { annualFee: "asc" },
+          take: 1,
+        },
+      },
+      orderBy: { nirfRank: "asc" },
     });
 
-    // Parse rank thresholds from examCutoff string
-    // e.g. "JEE Advanced Rank under 100" -> threshold 100
-    // e.g. "MHT-CET Rank under 2000"     -> threshold 2000
-    // e.g. "BITSAT Score above 350"       -> inverted (higher is better)
-    const results = allEligible.filter((college) => {
-      const cutoff = college.examCutoff.toLowerCase();
+    const results = colleges
+      .filter((c) => c.admissionCutoffs.length > 0)
+      .map((college) => {
+        const cutoffs = college.admissionCutoffs;
 
-      // Handle "score above X" (BITSAT, VITEEE — higher score = better)
-      const aboveMatch = cutoff.match(/score above (\d+)/);
-      if (aboveMatch) {
-        const threshold = parseInt(aboveMatch[1], 10);
-        return rank >= threshold;
-      }
+        // Average cutoff across available years
+        const avgCutoff =
+          cutoffs.reduce((sum, c) => sum + c.cutoffValue, 0) / cutoffs.length;
 
-      // Handle "rank under X" — lower rank = better
-      const underMatch = cutoff.match(/rank under ([\d,]+)/);
-      if (underMatch) {
-        const threshold = parseInt(underMatch[1].replace(/,/g, ""), 10);
-        return rank <= threshold;
-      }
+        // Determine probability bucket
+        // For rank-based exams (JEE): lower percentile = worse → compare rank not percentile
+        // We store JEE as rank values — lower rank is better
+        // For score-based (BITSAT/VITEEE): higher is better
+        const isScoreBased = ["BITSAT", "VITEEE", "SRMJEEE", "MET"].some((e) =>
+          exam.toUpperCase().includes(e.toUpperCase())
+        );
 
-      // Handle "rank under X" with written numbers
-      return true;
-    });
+        let probability: "safe" | "moderate" | "reach";
+        if (isScoreBased) {
+          // Higher score is better
+          const diff = percentile - avgCutoff; // positive means above cutoff
+          probability =
+            diff >= avgCutoff * 0.1  ? "safe"
+            : diff >= 0              ? "moderate"
+            : "reach";
+        } else {
+          // Rank-based: lower rank is better; percentile here is actually the rank submitted
+          const diff = avgCutoff - percentile; // positive means rank is better than cutoff
+          probability =
+            diff >= avgCutoff * 0.15 ? "safe"
+            : diff >= 0             ? "moderate"
+            : "reach";
+        }
 
-    return NextResponse.json(results);
+        return {
+          collegeId:   college.id,
+          slug:        college.slug,
+          name:        college.name,
+          city:        college.city,
+          nirfRank:    college.nirfRank,
+          avgCutoff:   Math.round(avgCutoff),
+          cutoffs:     cutoffs.map((c) => ({
+            year:         c.year,
+            cutoffValue:  c.cutoffValue,
+          })),
+          probability,
+          avgPackage:  college.placementStats[0]?.avgPackage ?? null,
+          minFee:      college.courseFees[0]?.annualFee     ?? null,
+        };
+      });
+
+    // Sort: safe first, then moderate, then reach
+    const order = { safe: 0, moderate: 1, reach: 2 };
+    results.sort((a, b) => order[a.probability] - order[b.probability]);
+
+    return NextResponse.json({ exam, percentile, category, results });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json(
-      { error: "Prediction failed" },
-      { status: 500 }
-    );
+    console.error("[GET /api/predictor]", error);
+    return NextResponse.json({ error: "Prediction failed" }, { status: 500 });
   }
 }

@@ -8,188 +8,155 @@ export default async function CollegeDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const resolvedParams = await params;
+  const { id } = await params;
 
-  const college = await prisma.college.findUnique({
-    where: { id: resolvedParams.id },
+  // This old route at /college/[id] redirects to the new /colleges/[slug]
+  // Find by id and redirect, or show data directly
+  const college = await prisma.college.findFirst({
+    where: { OR: [{ id }, { slug: id }] },
+    include: {
+      courseFees:      { orderBy: { annualFee: "asc" } },
+      placementStats:  { orderBy: { year: "desc" } },
+      admissionCutoffs: { orderBy: [{ year: "desc" }] },
+      reviews: {
+        where:   { status: "APPROVED" },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      },
+    },
   });
 
-  if (!college) {
-    notFound();
-  }
+  if (!college) notFound();
 
-  const ratingColor =
-    college.rating >= 4.5
-      ? "text-green-600"
-      : college.rating >= 4.0
-      ? "text-blue-600"
-      : "text-yellow-600";
+  const latestPlacement = college.placementStats[0];
+  const minFee = college.courseFees[0]?.annualFee ?? null;
 
   return (
     <>
       <Navbar />
-      <main className="min-h-screen bg-gray-50 px-4 sm:px-6 py-6">
-        <div className="max-w-5xl mx-auto">
+      <main style={{ minHeight: "100vh", background: "#fff", padding: "0 0 80px" }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto", padding: "32px 24px" }}>
+
           {/* Breadcrumb */}
-          <nav className="text-sm text-gray-500 mb-5">
-            <Link href="/" className="hover:text-blue-600 transition">
-              Colleges
-            </Link>
-            <span className="mx-2">›</span>
-            <span className="text-gray-800">{college.name}</span>
+          <nav style={{ fontSize: "13px", color: "#6B7280", marginBottom: "24px" }}>
+            <Link href="/" style={{ color: "#006AFF" }}>Colleges</Link>
+            <span style={{ margin: "0 8px" }}>›</span>
+            <span>{college.name}</span>
           </nav>
 
-          {/* HERO */}
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-8 sm:p-10 text-white mb-6 relative overflow-hidden">
-            <div className="relative z-10">
-              <h1 className="text-3xl sm:text-4xl font-bold mb-2">
-                {college.name}
-              </h1>
-              <p className="text-blue-200 text-sm sm:text-base mb-4">
-                📍 {college.location}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Link
-                  href={`/compare?id=${college.id}`}
-                  className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
-                >
-                  ⚖️ Compare
-                </Link>
-                <Link
-                  href="/"
-                  className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg text-sm transition"
-                >
-                  ← Back
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {/* QUICK STATS */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
-                Annual Fees
-              </p>
-              <p className="text-2xl font-bold text-gray-900">
-                ₹{college.fees.toLocaleString("en-IN")}
-              </p>
-              <p className="text-xs text-gray-400 mt-0.5">per year</p>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
-                Rating
-              </p>
-              <p className={`text-2xl font-bold ${ratingColor}`}>
-                ⭐ {college.rating} / 5
-              </p>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
-                Avg Placements
-              </p>
-              <p className="text-2xl font-bold text-gray-900">
-                {college.placements}
-              </p>
-            </div>
-          </div>
-
-          {/* OVERVIEW */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sm:p-8 mb-5">
-            <h2 className="text-xl font-bold text-gray-900 mb-3">Overview</h2>
-            <p className="text-gray-600 leading-relaxed text-sm sm:text-base">
-              {college.description}
+          {/* Header */}
+          <div style={{ marginBottom: "32px" }}>
+            {college.nirfRank && (
+              <span className="nirf-badge" style={{ marginBottom: "12px", display: "inline-block" }}>
+                NIRF #{college.nirfRank}
+              </span>
+            )}
+            <h1 style={{ fontSize: "2rem", fontWeight: 700, color: "#111827", lineHeight: 1.2 }}>
+              {college.name}
+            </h1>
+            <p style={{ color: "#6B7280", marginTop: "6px", fontSize: "15px" }}>
+              {college.city}, {college.state} &nbsp;·&nbsp; Est. {college.established}
+              {college.accreditation && ` · ${college.accreditation}`}
             </p>
-          </div>
-
-          {/* COURSES + PLACEMENT */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-3">
-                📚 Courses Offered
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                {college.courses.split(",").map((c) => (
-                  <span
-                    key={c}
-                    className="bg-blue-50 text-blue-700 text-xs px-3 py-1.5 rounded-full font-medium"
-                  >
-                    {c.trim()}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-3">
-                🎯 Admission Insight
-              </h2>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                {college.examCutoff}
-              </p>
+            <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
+              <Link href={`/colleges/${college.slug}`} style={{
+                padding: "8px 16px", background: "#006AFF", color: "#fff",
+                borderRadius: "8px", fontSize: "14px", fontWeight: 600,
+              }}>
+                Full Detail Page →
+              </Link>
+              <Link href="/" style={{
+                padding: "8px 16px", border: "1.5px solid #E5E7EB", color: "#374151",
+                borderRadius: "8px", fontSize: "14px",
+              }}>
+                ← Back
+              </Link>
             </div>
           </div>
 
-          {/* PLACEMENT INSIGHTS */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sm:p-8 mb-5">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
-              📈 Placement Insights
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-700">
-              <div className="bg-green-50 rounded-lg p-4">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
-                  Highest Package
-                </p>
-                <p className="text-lg font-bold text-green-700">
-                  {college.highestPackage}
-                </p>
-              </div>
-              <div className="bg-blue-50 rounded-lg p-4">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
-                  Avg Package
-                </p>
-                <p className="text-lg font-bold text-blue-700">
-                  {college.placements}
-                </p>
-              </div>
-            </div>
-            <div className="mt-4">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
-                Top Recruiters
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {college.topRecruiters.split(",").map((r) => (
-                  <span
-                    key={r}
-                    className="bg-gray-100 text-gray-700 text-xs px-3 py-1.5 rounded-full"
-                  >
-                    {r.trim()}
-                  </span>
-                ))}
-              </div>
-            </div>
+          {/* Quick stats */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "32px" }}>
+            <StatCard label="Min Annual Fee" value={minFee ? `₹${(minFee / 100000).toFixed(1)}L` : "N/A"} />
+            <StatCard label="Avg Package" value={latestPlacement ? `₹${latestPlacement.avgPackage} LPA` : "N/A"} />
+            <StatCard label="Placement %" value={latestPlacement ? `${latestPlacement.placementPct}%` : "N/A"} />
           </div>
 
-          {/* FACILITIES */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sm:p-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
-              🏛️ Campus Facilities
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {college.facilities.split(",").map((f) => (
-                <span
-                  key={f}
-                  className="bg-indigo-50 text-indigo-700 text-xs px-3 py-1.5 rounded-full font-medium"
-                >
-                  {f.trim()}
-                </span>
+          {/* Courses */}
+          <Section title="Courses & Fees">
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {college.courseFees.map((cf) => (
+                <div key={cf.id} style={{
+                  display: "flex", justifyContent: "space-between",
+                  padding: "12px 16px", border: "1px solid #E5E7EB", borderRadius: "8px",
+                }}>
+                  <span style={{ fontWeight: 500 }}>{cf.course} — {cf.degree}</span>
+                  <span style={{ color: "#006AFF", fontWeight: 600 }}>₹{cf.annualFee.toLocaleString("en-IN")}/yr</span>
+                </div>
               ))}
             </div>
-          </div>
+          </Section>
+
+          {/* Placements */}
+          {college.placementStats.length > 0 && (
+            <Section title="Placement Stats">
+              {college.placementStats.map((p) => (
+                <div key={p.id} style={{ marginBottom: "16px" }}>
+                  <p style={{ fontWeight: 600, marginBottom: "8px" }}>{p.year}</p>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px" }}>
+                    <StatCard label="Avg Package" value={`₹${p.avgPackage} LPA`} />
+                    <StatCard label="Max Package" value={`₹${p.maxPackage} LPA`} />
+                    <StatCard label="Placed" value={`${p.placementPct}%`} />
+                  </div>
+                </div>
+              ))}
+            </Section>
+          )}
+
+          {/* Admission Cutoffs */}
+          {college.admissionCutoffs.length > 0 && (
+            <Section title="Admission Cutoffs">
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {college.admissionCutoffs.map((cut) => (
+                  <div key={cut.id} style={{
+                    display: "flex", justifyContent: "space-between",
+                    padding: "10px 16px", border: "1px solid #E5E7EB", borderRadius: "8px",
+                    fontSize: "14px",
+                  }}>
+                    <span>{cut.exam} · {cut.year} · {cut.category}</span>
+                    <span style={{ fontWeight: 600 }}>{cut.cutoffValue.toLocaleString("en-IN")}</span>
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
+
         </div>
       </main>
     </>
+  );
+}
+
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{
+      border: "1px solid #E5E7EB", borderRadius: "8px", padding: "16px",
+      textAlign: "center",
+    }}>
+      <p style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "#9CA3AF", marginBottom: "4px" }}>
+        {label}
+      </p>
+      <p style={{ fontSize: "1.2rem", fontWeight: 700, color: "#111827" }}>{value}</p>
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginBottom: "32px" }}>
+      <h2 style={{ fontSize: "1.1rem", fontWeight: 700, color: "#111827", marginBottom: "16px", paddingBottom: "8px", borderBottom: "1px solid #E5E7EB" }}>
+        {title}
+      </h2>
+      {children}
+    </div>
   );
 }
