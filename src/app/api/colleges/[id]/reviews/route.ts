@@ -6,7 +6,7 @@ import { z } from "zod";
 
 const ReviewSchema = z.object({
   authorName:      z.string().min(1, "Name is required"),
-  batchYear:       z.number().int().min(2000).max(new Date().getFullYear()),
+  batchYear:       z.number().int().min(2010, "Batch year must be 2010 or later").max(new Date().getFullYear(), `Batch year cannot exceed ${new Date().getFullYear()}`),
   stream:          z.string().min(1, "Stream is required"),
   ratingOverall:   z.number().min(1).max(5),
   ratingPlacement: z.number().min(1).max(5),
