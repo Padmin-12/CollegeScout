@@ -5,6 +5,9 @@ import Navbar from "@/components/Navbar";
 import Link from "next/link";
 import PlacementsSection from "./PlacementsSection";
 import ReviewsSection from "./ReviewsSection";
+import CutoffsSection from "./CutoffsSection";
+import CareerTrendsSection from "./CareerTrendsSection";
+import ShortlistButton from "@/components/ShortlistButton";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -46,17 +49,9 @@ export default async function CollegeDetailPage({ params }: Props) {
   const latestPlacement = college.placementStats[0] ?? null;
   const minFee          = college.courseFees[0]?.annualFee ?? null;
 
-  // Aggregate review stats
-  const reviewCount = college.reviews.length;
-  const avgOverall  = reviewCount > 0
-    ? avg(college.reviews.map((r) => r.ratingOverall)) : null;
-
-  // Group cutoffs by exam
-  const cutoffsByExam: Record<string, typeof college.admissionCutoffs> = {};
-  for (const c of college.admissionCutoffs) {
-    if (!cutoffsByExam[c.exam]) cutoffsByExam[c.exam] = [];
-    cutoffsByExam[c.exam].push(c);
-  }
+  const reviewCount = await prisma.review.count({
+    where: { collegeId: college.id, status: "APPROVED" },
+  });
 
   const TYPE_LABEL: Record<string, string> = {
     GOVT: "Government", PRIVATE: "Private", DEEMED: "Deemed",
@@ -117,10 +112,11 @@ export default async function CollegeDetailPage({ params }: Props) {
             </div>
 
             {/* CTA buttons */}
-            <div style={{ display: "flex", gap: "10px", marginTop: "20px", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: "10px", marginTop: "20px", flexWrap: "wrap", alignItems: "center" }}>
               <Link href={`/compare?ids=${college.slug}`} style={styles.btnPrimary}>
                 ⚖️ Compare
               </Link>
+              <ShortlistButton collegeId={college.id} />
               <Link href="/" style={styles.btnSecondary}>← Back to Search</Link>
             </div>
           </div>
@@ -171,42 +167,28 @@ export default async function CollegeDetailPage({ params }: Props) {
             </Section>
           )}
 
+          {college.placementStats.length > 0 && (
+            <Section title="Career Trends">
+              <CareerTrendsSection collegeSlug={college.slug} />
+            </Section>
+          )}
+
           {/* ── ADMISSION CUTOFFS ── */}
-          {Object.keys(cutoffsByExam).length > 0 && (
+          {college.admissionCutoffs.length > 0 && (
             <Section title="Admission Cutoffs">
-              {Object.entries(cutoffsByExam).map(([exam, cuts]) => (
-                <div key={exam} style={{ marginBottom: "20px" }}>
-                  <p style={{ fontSize: "13px", fontWeight: 600, color: "#6B7280", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                    {exam}
-                  </p>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                    {cuts.map((cut) => (
-                      <div key={cut.id} style={{
-                        display: "flex", justifyContent: "space-between",
-                        padding: "10px 14px", border: "1px solid #E5E7EB", borderRadius: "6px",
-                        fontSize: "13px",
-                      }}>
-                        <span style={{ color: "#374151" }}>{cut.year} — {cut.category}</span>
-                        <span style={{ fontWeight: 700, color: "#111827" }}>
-                          {cut.cutoffValue.toLocaleString("en-IN")}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
+              <CutoffsSection cutoffs={college.admissionCutoffs} />
             </Section>
           )}
 
           {/* ── REVIEWS ── */}
-          <Section title={`Reviews${reviewCount > 0 ? ` (${reviewCount})` : ""}`}>
-            {avgOverall && (
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "20px" }}>
-                <span style={{ fontSize: "2rem", fontWeight: 700, color: "#111827" }}>{avgOverall}</span>
-                <span style={{ fontSize: "14px", color: "#6B7280" }}>/ 5 overall</span>
-              </div>
-            )}
-            <ReviewsSection collegeId={college.id} initialReviews={college.reviews} />
+          <Section title={`Student Reviews${reviewCount > 0 ? ` (${reviewCount})` : ""}`}>
+            <ReviewsSection
+              collegeSlug={college.slug}
+              initialReviews={college.reviews.map((r) => ({
+                ...r,
+                createdAt: r.createdAt.toISOString(),
+              }))}
+            />
           </Section>
 
         </div>
@@ -244,13 +226,6 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       {children}
     </div>
   );
-}
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-
-function avg(nums: number[]): number {
-  if (!nums.length) return 0;
-  return Math.round((nums.reduce((a, b) => a + b, 0) / nums.length) * 10) / 10;
 }
 
 const styles = {

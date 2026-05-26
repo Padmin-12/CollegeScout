@@ -7,16 +7,16 @@ import Link from "next/link";
 // ── Types ──────────────────────────────────────────────────────────────────
 
 type PredictorResult = {
-  collegeId:   string;
-  slug:        string;
-  name:        string;
-  city:        string;
-  nirfRank:    number | null;
-  avgCutoff:   number;
-  probability: "high" | "medium" | "low";
-  avgPackage:  number | null;
-  minFee:      number | null;
-  cutoffs:     { year: number; cutoffValue: number }[];
+  collegeId:         string;
+  slug:              string;
+  name:              string;
+  city:              string;
+  nirfRank:          number | null;
+  lastClosingRank:   number;
+  cutoffYear:        number;
+  probability:       "high" | "medium" | "low";
+  avgPackage:        number | null;
+  minFee:            number | null;
 };
 
 type PredictorResponse = {
@@ -288,7 +288,8 @@ function CollegeResultCard({ result }: { result: PredictorResult }) {
         </div>
         <p style={{ fontSize: "12px", color: "#6B7280" }}>{result.city}</p>
         <p style={{ fontSize: "12px", color: "#6B7280", marginTop: "2px" }}>
-          Avg cutoff ({result.cutoffs.map((c) => c.year).join("/")}): <strong>{result.avgCutoff.toLocaleString("en-IN")}</strong>
+          Last closing rank ({result.cutoffYear}, any branch):{" "}
+          <strong>{result.lastClosingRank.toLocaleString("en-IN")}</strong>
         </p>
       </div>
 

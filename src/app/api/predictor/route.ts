@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { latestLastClosingRank } from "@/lib/cutoffs";
 import { NextRequest, NextResponse } from "next/server";
 
 // GET /api/predictor?exam=JEE Advanced&percentile=95&category=General
@@ -44,21 +45,19 @@ export async function GET(req: NextRequest) {
     const results = colleges
       .filter((c) => c.admissionCutoffs.length > 0)
       .map((college) => {
-        const cutoffs = college.admissionCutoffs;
+        const cutoffs = college.admissionCutoffs.map((c) => ({
+          id: c.id,
+          exam: c.exam,
+          year: c.year,
+          category: c.category,
+          branch: c.branch,
+          cutoffValue: c.cutoffValue,
+        }));
 
-        // Group by year, take the MAX cutoff value per year
-        // (highest rank number = last closing rank = most accessible branch)
-        // This answers: "Can I get into ANY branch at this college?"
-        const byYear: Record<number, number> = {};
-        for (const c of cutoffs) {
-          if (!byYear[c.year] || c.cutoffValue > byYear[c.year]) {
-            byYear[c.year] = c.cutoffValue;
-          }
-        }
+        const lastClosingRank = latestLastClosingRank(cutoffs);
+        if (lastClosingRank == null) return null;
 
-        // Average the last-closing-rank across the available years
-        const years = Object.keys(byYear).map(Number).sort((a, b) => b - a).slice(0, 3);
-        const avgLastRank = years.reduce((sum, y) => sum + byYear[y], 0) / years.length;
+        const latestYear = Math.max(...cutoffs.map((c) => c.year));
 
         const isScoreBased = ["BITSAT", "VITEEE", "SRMJEEE", "MET"].some((e) =>
           exam.toUpperCase().includes(e.toUpperCase())
@@ -66,35 +65,33 @@ export async function GET(req: NextRequest) {
 
         let probability: "high" | "medium" | "low";
         if (isScoreBased) {
-          // Higher score = better
-          const diff = percentile - avgLastRank;
+          const diff = percentile - lastClosingRank;
           probability =
-            diff >= avgLastRank * 0.1  ? "high"
-            : diff >= 0               ? "medium"
+            diff >= lastClosingRank * 0.1 ? "high"
+            : diff >= 0                    ? "medium"
             : "low";
         } else {
-          // Rank-based: lower rank number = better
-          // diff > 0 means your rank is better than the last closing rank → you're in
-          const diff = avgLastRank - percentile;
+          const diff = lastClosingRank - percentile;
           probability =
-            diff >= avgLastRank * 0.15 ? "high"   // rank much better than last closing
-            : diff >= 0               ? "medium"  // rank just within last closing
-            : "low";                              // rank worse than last closing
+            diff >= lastClosingRank * 0.15 ? "high"
+            : diff >= 0                    ? "medium"
+            : "low";
         }
 
         return {
-          collegeId:   college.id,
-          slug:        college.slug,
-          name:        college.name,
-          city:        college.city,
-          nirfRank:    college.nirfRank,
-          avgCutoff:   Math.round(avgLastRank),
-          cutoffs:     years.map((y) => ({ year: y, cutoffValue: byYear[y] })),
+          collegeId:         college.id,
+          slug:              college.slug,
+          name:              college.name,
+          city:              college.city,
+          nirfRank:          college.nirfRank,
+          lastClosingRank:   Math.round(lastClosingRank),
+          cutoffYear:        latestYear,
           probability,
-          avgPackage:  college.placementStats[0]?.avgPackage ?? null,
-          minFee:      college.courseFees[0]?.annualFee     ?? null,
+          avgPackage:        college.placementStats[0]?.avgPackage ?? null,
+          minFee:            college.courseFees[0]?.annualFee     ?? null,
         };
-      });
+      })
+      .filter((r): r is NonNullable<typeof r> => r != null);
 
     // Sort: high first, then medium, then low
     const order = { high: 0, medium: 1, low: 2 };

@@ -40,7 +40,7 @@ export default function Navbar() {
           <NavLink href="/">Colleges</NavLink>
           <NavLink href="/compare">Compare</NavLink>
           <NavLink href="/predictor">Predictor</NavLink>
-          {session && <NavLink href="/saved">★ Saved</NavLink>}
+          <NavLink href="/shortlist">★ Shortlist</NavLink>
 
           {session ? (
             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -114,7 +114,7 @@ export default function Navbar() {
             { href: "/", label: "Colleges" },
             { href: "/compare", label: "Compare" },
             { href: "/predictor", label: "Predictor" },
-            ...(session ? [{ href: "/saved", label: "★ Saved" }] : []),
+            { href: "/shortlist", label: "★ Shortlist" },
           ].map((item) => (
             <Link
               key={item.href}
