@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useSession } from "next-auth/react";
 import Navbar from "@/components/Navbar";
 import CollegeCard from "@/components/CollegeCard";
 import SkeletonCard from "@/components/SkeletonCard";
@@ -51,8 +50,6 @@ const LIMIT = 9;
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function Home() {
-  const { data: session } = useSession();
-
   const [colleges,    setColleges]    = useState<College[]>([]);
   const [total,       setTotal]       = useState(0);
   const [totalPages,  setTotalPages]  = useState(1);
@@ -117,41 +114,60 @@ export default function Home() {
 
   useEffect(() => { fetchColleges(); }, [fetchColleges]);
 
-  // Load saved IDs
+  // Load saved colleges from shortlist on mount
   useEffect(() => {
-    if (!session) return;
-    fetch("/api/saved")
+    let sessionId = localStorage.getItem("sessionId");
+    if (!sessionId) {
+      sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      localStorage.setItem("sessionId", sessionId);
+    }
+
+    fetch(`/api/shortlist`, {
+      headers: { "x-session-id": sessionId },
+    })
       .then((r) => r.json())
-      .then((data: Array<{ id: string }>) => {
-        if (Array.isArray(data)) setSavedIds(new Set(data.map((c) => c.id)));
+      .then((data: Array<{ collegeId: string }>) => {
+        if (Array.isArray(data)) setSavedIds(new Set(data.map((c) => c.collegeId)));
       })
       .catch(() => {});
-  }, [session]);
+  }, []);
 
+  // Handle save/unsave toggle
   async function handleSaveToggle(collegeId: string, save: boolean) {
-    if (!session) {
-      setToast({ message: "Sign in to save colleges to your shortlist", type: "info" });
-      return;
+    let sessionId = localStorage.getItem("sessionId");
+    if (!sessionId) {
+      sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      localStorage.setItem("sessionId", sessionId);
     }
+
     try {
       if (save) {
-        await fetch("/api/saved", {
+        const res = await fetch("/api/shortlist", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "x-session-id": sessionId,
+          },
           body: JSON.stringify({ collegeId }),
         });
+        if (!res.ok) throw new Error("Failed to save");
         setSavedIds((prev) => new Set([...prev, collegeId]));
         setToast({ message: "Added to shortlist ★", type: "success" });
       } else {
-        await fetch("/api/saved", {
+        const res = await fetch("/api/shortlist", {
           method: "DELETE",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "x-session-id": sessionId,
+          },
           body: JSON.stringify({ collegeId }),
         });
+        if (!res.ok) throw new Error("Failed to remove");
         setSavedIds((prev) => { const n = new Set(prev); n.delete(collegeId); return n; });
         setToast({ message: "Removed from shortlist", type: "info" });
       }
-    } catch {
+    } catch (error) {
+      console.error("Shortlist error:", error);
       setToast({ message: "Failed to update shortlist", type: "error" });
     }
   }

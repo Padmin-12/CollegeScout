@@ -46,33 +46,40 @@ export async function GET(req: NextRequest) {
       .map((college) => {
         const cutoffs = college.admissionCutoffs;
 
-        // Average cutoff across available years
-        const avgCutoff =
-          cutoffs.reduce((sum, c) => sum + c.cutoffValue, 0) / cutoffs.length;
+        // Group by year, take the MAX cutoff value per year
+        // (highest rank number = last closing rank = most accessible branch)
+        // This answers: "Can I get into ANY branch at this college?"
+        const byYear: Record<number, number> = {};
+        for (const c of cutoffs) {
+          if (!byYear[c.year] || c.cutoffValue > byYear[c.year]) {
+            byYear[c.year] = c.cutoffValue;
+          }
+        }
 
-        // Determine probability bucket
-        // For rank-based exams (JEE): lower percentile = worse → compare rank not percentile
-        // We store JEE as rank values — lower rank is better
-        // For score-based (BITSAT/VITEEE): higher is better
+        // Average the last-closing-rank across the available years
+        const years = Object.keys(byYear).map(Number).sort((a, b) => b - a).slice(0, 3);
+        const avgLastRank = years.reduce((sum, y) => sum + byYear[y], 0) / years.length;
+
         const isScoreBased = ["BITSAT", "VITEEE", "SRMJEEE", "MET"].some((e) =>
           exam.toUpperCase().includes(e.toUpperCase())
         );
 
-        let probability: "safe" | "moderate" | "reach";
+        let probability: "high" | "medium" | "low";
         if (isScoreBased) {
-          // Higher score is better
-          const diff = percentile - avgCutoff; // positive means above cutoff
+          // Higher score = better
+          const diff = percentile - avgLastRank;
           probability =
-            diff >= avgCutoff * 0.1  ? "safe"
-            : diff >= 0              ? "moderate"
-            : "reach";
+            diff >= avgLastRank * 0.1  ? "high"
+            : diff >= 0               ? "medium"
+            : "low";
         } else {
-          // Rank-based: lower rank is better; percentile here is actually the rank submitted
-          const diff = avgCutoff - percentile; // positive means rank is better than cutoff
+          // Rank-based: lower rank number = better
+          // diff > 0 means your rank is better than the last closing rank → you're in
+          const diff = avgLastRank - percentile;
           probability =
-            diff >= avgCutoff * 0.15 ? "safe"
-            : diff >= 0             ? "moderate"
-            : "reach";
+            diff >= avgLastRank * 0.15 ? "high"   // rank much better than last closing
+            : diff >= 0               ? "medium"  // rank just within last closing
+            : "low";                              // rank worse than last closing
         }
 
         return {
@@ -81,19 +88,16 @@ export async function GET(req: NextRequest) {
           name:        college.name,
           city:        college.city,
           nirfRank:    college.nirfRank,
-          avgCutoff:   Math.round(avgCutoff),
-          cutoffs:     cutoffs.map((c) => ({
-            year:         c.year,
-            cutoffValue:  c.cutoffValue,
-          })),
+          avgCutoff:   Math.round(avgLastRank),
+          cutoffs:     years.map((y) => ({ year: y, cutoffValue: byYear[y] })),
           probability,
           avgPackage:  college.placementStats[0]?.avgPackage ?? null,
           minFee:      college.courseFees[0]?.annualFee     ?? null,
         };
       });
 
-    // Sort: safe first, then moderate, then reach
-    const order = { safe: 0, moderate: 1, reach: 2 };
+    // Sort: high first, then medium, then low
+    const order = { high: 0, medium: 1, low: 2 };
     results.sort((a, b) => order[a.probability] - order[b.probability]);
 
     return NextResponse.json({ exam, percentile, category, results });

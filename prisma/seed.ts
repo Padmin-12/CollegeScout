@@ -29,7 +29,7 @@ async function main() {
     accreditation: string;
     courses: { course: string; degree: string; annualFee: number }[];
     placements: { year: number; avgPackage: number; maxPackage: number; placementPct: number; topRecruiters: string[] }[];
-    cutoffs: { exam: string; year: number; category: string; cutoffValue: number }[];
+    cutoffs: { exam: string; year: number; category: string; branch?: string; cutoffValue: number }[];
   };
 
   const colleges: CollegeSeed[] = [
@@ -57,12 +57,25 @@ async function main() {
         { year: 2022, avgPackage: 23.1, maxPackage: 180, placementPct: 93, topRecruiters: ["Microsoft", "Amazon", "Morgan Stanley", "Qualcomm", "DE Shaw"] },
       ],
       cutoffs: [
-        { exam: "JEE Advanced", year: 2024, category: "General", cutoffValue: 67 },
-        { exam: "JEE Advanced", year: 2024, category: "OBC", cutoffValue: 212 },
-        { exam: "JEE Advanced", year: 2024, category: "SC", cutoffValue: 621 },
-        { exam: "JEE Advanced", year: 2023, category: "General", cutoffValue: 54 },
-        { exam: "JEE Advanced", year: 2023, category: "OBC", cutoffValue: 178 },
-        { exam: "JEE Advanced", year: 2022, category: "General", cutoffValue: 80 },
+        // CSE — most competitive
+        { exam: "JEE Advanced", year: 2024, category: "General", branch: "CSE", cutoffValue: 67 },
+        { exam: "JEE Advanced", year: 2023, category: "General", branch: "CSE", cutoffValue: 54 },
+        { exam: "JEE Advanced", year: 2022, category: "General", branch: "CSE", cutoffValue: 80 },
+        // Electrical Engineering
+        { exam: "JEE Advanced", year: 2024, category: "General", branch: "Electrical", cutoffValue: 420 },
+        { exam: "JEE Advanced", year: 2023, category: "General", branch: "Electrical", cutoffValue: 380 },
+        { exam: "JEE Advanced", year: 2022, category: "General", branch: "Electrical", cutoffValue: 450 },
+        // Mechanical Engineering
+        { exam: "JEE Advanced", year: 2024, category: "General", branch: "Mechanical", cutoffValue: 1850 },
+        { exam: "JEE Advanced", year: 2023, category: "General", branch: "Mechanical", cutoffValue: 1720 },
+        { exam: "JEE Advanced", year: 2022, category: "General", branch: "Mechanical", cutoffValue: 1980 },
+        // Chemical Engineering (most accessible)
+        { exam: "JEE Advanced", year: 2024, category: "General", branch: "Chemical", cutoffValue: 3200 },
+        { exam: "JEE Advanced", year: 2023, category: "General", branch: "Chemical", cutoffValue: 3050 },
+        { exam: "JEE Advanced", year: 2022, category: "General", branch: "Chemical", cutoffValue: 3400 },
+        // OBC — CS
+        { exam: "JEE Advanced", year: 2024, category: "OBC", branch: "CSE", cutoffValue: 212 },
+        { exam: "JEE Advanced", year: 2024, category: "SC", branch: "CSE", cutoffValue: 621 },
       ],
     },
     {
@@ -88,11 +101,25 @@ async function main() {
         { year: 2022, avgPackage: 21.5, maxPackage: 160, placementPct: 92, topRecruiters: ["Google", "Morgan Stanley", "Apple", "Adobe", "Walmart"] },
       ],
       cutoffs: [
-        { exam: "JEE Advanced", year: 2024, category: "General", cutoffValue: 118 },
-        { exam: "JEE Advanced", year: 2024, category: "OBC", cutoffValue: 350 },
-        { exam: "JEE Advanced", year: 2024, category: "SC", cutoffValue: 890 },
-        { exam: "JEE Advanced", year: 2023, category: "General", cutoffValue: 98 },
-        { exam: "JEE Advanced", year: 2022, category: "General", cutoffValue: 135 },
+        // CSE
+        { exam: "JEE Advanced", year: 2024, category: "General", branch: "CSE",        cutoffValue: 118 },
+        { exam: "JEE Advanced", year: 2023, category: "General", branch: "CSE",        cutoffValue: 98 },
+        { exam: "JEE Advanced", year: 2022, category: "General", branch: "CSE",        cutoffValue: 135 },
+        // Electrical Engineering
+        { exam: "JEE Advanced", year: 2024, category: "General", branch: "Electrical", cutoffValue: 560 },
+        { exam: "JEE Advanced", year: 2023, category: "General", branch: "Electrical", cutoffValue: 520 },
+        { exam: "JEE Advanced", year: 2022, category: "General", branch: "Electrical", cutoffValue: 610 },
+        // Mechanical Engineering
+        { exam: "JEE Advanced", year: 2024, category: "General", branch: "Mechanical", cutoffValue: 2100 },
+        { exam: "JEE Advanced", year: 2023, category: "General", branch: "Mechanical", cutoffValue: 1950 },
+        { exam: "JEE Advanced", year: 2022, category: "General", branch: "Mechanical", cutoffValue: 2350 },
+        // Chemical Engineering (most accessible)
+        { exam: "JEE Advanced", year: 2024, category: "General", branch: "Chemical",   cutoffValue: 3800 },
+        { exam: "JEE Advanced", year: 2023, category: "General", branch: "Chemical",   cutoffValue: 3600 },
+        { exam: "JEE Advanced", year: 2022, category: "General", branch: "Chemical",   cutoffValue: 4100 },
+        // OBC/SC
+        { exam: "JEE Advanced", year: 2024, category: "OBC",     branch: "CSE",        cutoffValue: 350 },
+        { exam: "JEE Advanced", year: 2024, category: "SC",      branch: "CSE",        cutoffValue: 890 },
       ],
     },
     {
@@ -118,10 +145,24 @@ async function main() {
         { year: 2022, avgPackage: 20.2, maxPackage: 158, placementPct: 91, topRecruiters: ["Adobe", "Intel", "Flipkart", "Goldman Sachs", "Walmart"] },
       ],
       cutoffs: [
-        { exam: "JEE Advanced", year: 2024, category: "General", cutoffValue: 145 },
-        { exam: "JEE Advanced", year: 2024, category: "OBC", cutoffValue: 420 },
-        { exam: "JEE Advanced", year: 2023, category: "General", cutoffValue: 130 },
-        { exam: "JEE Advanced", year: 2022, category: "General", cutoffValue: 155 },
+        // CSE
+        { exam: "JEE Advanced", year: 2024, category: "General", branch: "CSE", cutoffValue: 145 },
+        { exam: "JEE Advanced", year: 2023, category: "General", branch: "CSE", cutoffValue: 130 },
+        { exam: "JEE Advanced", year: 2022, category: "General", branch: "CSE", cutoffValue: 155 },
+        // Electrical Engineering
+        { exam: "JEE Advanced", year: 2024, category: "General", branch: "Electrical", cutoffValue: 680 },
+        { exam: "JEE Advanced", year: 2023, category: "General", branch: "Electrical", cutoffValue: 630 },
+        { exam: "JEE Advanced", year: 2022, category: "General", branch: "Electrical", cutoffValue: 720 },
+        // Mechanical Engineering
+        { exam: "JEE Advanced", year: 2024, category: "General", branch: "Mechanical", cutoffValue: 2450 },
+        { exam: "JEE Advanced", year: 2023, category: "General", branch: "Mechanical", cutoffValue: 2280 },
+        { exam: "JEE Advanced", year: 2022, category: "General", branch: "Mechanical", cutoffValue: 2700 },
+        // Aerospace Engineering (most accessible)
+        { exam: "JEE Advanced", year: 2024, category: "General", branch: "Aerospace", cutoffValue: 4100 },
+        { exam: "JEE Advanced", year: 2023, category: "General", branch: "Aerospace", cutoffValue: 3850 },
+        { exam: "JEE Advanced", year: 2022, category: "General", branch: "Aerospace", cutoffValue: 4500 },
+        // OBC/SC
+        { exam: "JEE Advanced", year: 2024, category: "OBC", branch: "CSE", cutoffValue: 420 },
       ],
     },
     {
@@ -147,10 +188,24 @@ async function main() {
         { year: 2022, avgPackage: 17.8, maxPackage: 142, placementPct: 88, topRecruiters: ["Samsung", "Qualcomm", "IBM", "Wipro", "Deloitte"] },
       ],
       cutoffs: [
-        { exam: "JEE Advanced", year: 2024, category: "General", cutoffValue: 420 },
-        { exam: "JEE Advanced", year: 2024, category: "OBC", cutoffValue: 890 },
-        { exam: "JEE Advanced", year: 2023, category: "General", cutoffValue: 390 },
-        { exam: "JEE Advanced", year: 2022, category: "General", cutoffValue: 450 },
+        // CSE
+        { exam: "JEE Advanced", year: 2024, category: "General", branch: "CSE",        cutoffValue: 420 },
+        { exam: "JEE Advanced", year: 2023, category: "General", branch: "CSE",        cutoffValue: 390 },
+        { exam: "JEE Advanced", year: 2022, category: "General", branch: "CSE",        cutoffValue: 450 },
+        // Electrical Engineering
+        { exam: "JEE Advanced", year: 2024, category: "General", branch: "Electrical", cutoffValue: 1600 },
+        { exam: "JEE Advanced", year: 2023, category: "General", branch: "Electrical", cutoffValue: 1480 },
+        { exam: "JEE Advanced", year: 2022, category: "General", branch: "Electrical", cutoffValue: 1750 },
+        // Mechanical Engineering
+        { exam: "JEE Advanced", year: 2024, category: "General", branch: "Mechanical", cutoffValue: 4200 },
+        { exam: "JEE Advanced", year: 2023, category: "General", branch: "Mechanical", cutoffValue: 3900 },
+        { exam: "JEE Advanced", year: 2022, category: "General", branch: "Mechanical", cutoffValue: 4600 },
+        // Mining / Agricultural (most accessible)
+        { exam: "JEE Advanced", year: 2024, category: "General", branch: "Mining",     cutoffValue: 8500 },
+        { exam: "JEE Advanced", year: 2023, category: "General", branch: "Mining",     cutoffValue: 8100 },
+        { exam: "JEE Advanced", year: 2022, category: "General", branch: "Mining",     cutoffValue: 9200 },
+        // OBC
+        { exam: "JEE Advanced", year: 2024, category: "OBC",     branch: "CSE",        cutoffValue: 890 },
       ],
     },
     {

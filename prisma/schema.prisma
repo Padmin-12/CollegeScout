@@ -79,11 +79,12 @@ model AdmissionCutoff {
   exam         String  // e.g. "JEE Advanced", "JEE Mains", "MHT-CET"
   year         Int
   category     String  // e.g. "General", "OBC", "SC", "ST"
+  branch       String  @default("All Branches") // e.g. "CSE", "Mechanical", "All Branches"
   cutoffValue  Float   // rank or percentile depending on exam
 
   college College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
 
-  @@unique([collegeId, exam, year, category])
+  @@unique([collegeId, exam, year, category, branch])
   @@index([collegeId])
 }
 

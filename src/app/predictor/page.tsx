@@ -4,252 +4,315 @@ import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Link from "next/link";
 
-type PredictedCollege = {
-  id: string;
-  name: string;
-  location: string;
-  fees: number;
-  rating: number;
-  placements: string;
-  highestPackage: string;
-  examCutoff: string;
-  courses: string;
+// ── Types ──────────────────────────────────────────────────────────────────
+
+type PredictorResult = {
+  collegeId:   string;
+  slug:        string;
+  name:        string;
+  city:        string;
+  nirfRank:    number | null;
+  avgCutoff:   number;
+  probability: "high" | "medium" | "low";
+  avgPackage:  number | null;
+  minFee:      number | null;
+  cutoffs:     { year: number; cutoffValue: number }[];
 };
 
+type PredictorResponse = {
+  exam:       string;
+  percentile: number;
+  category:   string;
+  results:    PredictorResult[];
+};
+
+// ── Config ─────────────────────────────────────────────────────────────────
+
 const EXAMS = [
-  { value: "JEE Advanced", label: "JEE Advanced" },
-  { value: "JEE Mains", label: "JEE Mains" },
-  { value: "MHT-CET", label: "MHT-CET" },
-  { value: "KCET", label: "KCET" },
-  { value: "WBJEE", label: "WBJEE" },
-  { value: "BITSAT", label: "BITSAT (Score)" },
+  { label: "JEE Advanced",  value: "JEE Advanced",  type: "rank",  placeholder: "e.g. 500 (rank)" },
+  { label: "JEE Main",      value: "JEE Main",      type: "rank",  placeholder: "e.g. 5000 (rank)" },
+  { label: "MHT-CET",       value: "MHT-CET",       type: "pct",   placeholder: "e.g. 99.2 (percentile)" },
+  { label: "BITSAT",        value: "BITSAT",         type: "score", placeholder: "e.g. 350 (score)" },
+  { label: "VITEEE",        value: "VITEEE",         type: "rank",  placeholder: "e.g. 1000 (rank)" },
+  { label: "KCET",          value: "KCET",           type: "rank",  placeholder: "e.g. 2000 (rank)" },
+  { label: "WBJEE",         value: "WBJEE",          type: "rank",  placeholder: "e.g. 3000 (rank)" },
 ];
 
-const BRANCHES = [
-  "CS", "ECE", "Mechanical", "Electrical", "Civil", "Chemical",
-];
+const CATEGORIES = ["General", "OBC", "SC", "ST", "EWS"];
+
+const PROB_STYLES: Record<string, { bg: string; color: string; border: string; label: string }> = {
+  high:   { bg: "#F0FDF4", color: "#16A34A", border: "#BBF7D0", label: "✅ High" },
+  medium: { bg: "#FFFBEB", color: "#D97706", border: "#FDE68A", label: "⚡ Medium" },
+  low:    { bg: "#FEF2F2", color: "#DC2626", border: "#FECACA", label: "🎯 Low" },
+};
+
+// ── Component ──────────────────────────────────────────────────────────────
 
 export default function PredictorPage() {
-  const [exam, setExam] = useState("JEE Mains");
-  const [rank, setRank] = useState("");
-  const [branch, setBranch] = useState("");
-  const [results, setResults] = useState<PredictedCollege[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [searched, setSearched] = useState(false);
+  const [exam,       setExam]       = useState(EXAMS[0].value);
+  const [percentile, setPercentile] = useState("");
+  const [category,   setCategory]   = useState("General");
+  const [results,    setResults]    = useState<PredictorResult[]>([]);
+  const [loading,    setLoading]    = useState(false);
+  const [error,      setError]      = useState("");
+  const [searched,   setSearched]   = useState(false);
 
-  const isScore = exam === "BITSAT";
+  const selectedExam = EXAMS.find((e) => e.value === exam) ?? EXAMS[0];
 
   async function handlePredict() {
-    if (!rank) return;
+    if (!percentile || !exam) return;
     setLoading(true);
     setError("");
-    setSearched(true);
+    setResults([]);
+    setSearched(false);
 
     try {
-      const params = new URLSearchParams({ exam, rank });
-      if (branch) params.set("branch", branch);
-      const res = await fetch(`/api/predictor?${params.toString()}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Prediction failed");
-      setResults(Array.isArray(data) ? data : []);
+      const params = new URLSearchParams({ exam, percentile, category });
+      const res    = await fetch(`/api/predictor?${params.toString()}`);
+      const data   = await res.json() as PredictorResponse | { error: string };
+
+      if (!res.ok || "error" in data) {
+        setError("error" in data ? data.error : "Prediction failed");
+      } else {
+        setResults(data.results);
+        setSearched(true);
+      }
     } catch {
-      setError("Could not fetch predictions. Please try again.");
-      setResults([]);
+      setError("Network error. Please try again.");
     } finally {
       setLoading(false);
     }
   }
 
+  const high   = results.filter((r) => r.probability === "high");
+  const medium  = results.filter((r) => r.probability === "medium");
+  const low     = results.filter((r) => r.probability === "low");
+
   return (
     <>
       <Navbar />
-      <main className="min-h-screen bg-gray-50 px-4 sm:px-6 py-8">
-        <div className="max-w-3xl mx-auto">
+      <main style={{ minHeight: "100vh", background: "#fff" }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto", padding: "40px 24px 80px" }}>
+
           {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
-              College Rank Predictor
+          <div style={{ marginBottom: "32px" }}>
+            <h1 style={{ fontSize: "1.75rem", fontWeight: 700, color: "#111827", letterSpacing: "-0.02em" }}>
+              Admission Predictor
             </h1>
-            <p className="text-gray-500 text-sm">
-              Enter your exam and rank to discover which colleges you're likely eligible for.
+            <p style={{ color: "#6B7280", fontSize: "14px", marginTop: "6px" }}>
+              Enter your exam score to see which colleges are safe, moderate, or reach for you.
             </p>
           </div>
 
-          {/* Form */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
-            <div className="space-y-5">
+          {/* ── INPUT FORM ── */}
+          <div style={{
+            border: "1px solid #E5E7EB", borderRadius: "12px",
+            padding: "24px", marginBottom: "32px",
+          }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px", marginBottom: "16px" }}>
+
               {/* Exam */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Entrance Exam
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <label style={{ fontSize: "12px", fontWeight: 600, color: "#374151" }}>Entrance Exam</label>
+                <select
+                  value={exam}
+                  onChange={(e) => { setExam(e.target.value); setResults([]); setSearched(false); }}
+                  style={{
+                    padding: "10px 12px", border: "1.5px solid #E5E7EB",
+                    borderRadius: "8px", fontSize: "14px", color: "#111827",
+                    background: "#fff", outline: "none", cursor: "pointer",
+                  }}
+                >
                   {EXAMS.map((e) => (
-                    <button
-                      key={e.value}
-                      onClick={() => setExam(e.value)}
-                      className={`py-2 px-3 rounded-xl border text-sm font-medium transition ${
-                        exam === e.value
-                          ? "bg-blue-600 text-white border-blue-600"
-                          : "bg-gray-50 text-gray-700 border-gray-200 hover:border-blue-300"
-                      }`}
-                    >
-                      {e.label}
-                    </button>
+                    <option key={e.value} value={e.value}>{e.label}</option>
                   ))}
-                </div>
+                </select>
               </div>
 
-              {/* Rank / Score */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  {isScore ? "Your Score" : "Your Rank"}
+              {/* Score/Rank/Percentile */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <label style={{ fontSize: "12px", fontWeight: 600, color: "#374151" }}>
+                  Your {selectedExam.type === "rank" ? "Rank" : selectedExam.type === "score" ? "Score" : "Percentile"}
                 </label>
                 <input
                   type="number"
-                  placeholder={
-                    isScore
-                      ? "Enter your BITSAT score (e.g. 380)"
-                      : "Enter your rank (e.g. 5000)"
-                  }
-                  value={rank}
-                  onChange={(e) => setRank(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 transition text-sm"
-                  min={1}
+                  value={percentile}
+                  onChange={(e) => setPercentile(e.target.value)}
+                  placeholder={selectedExam.placeholder}
+                  style={{
+                    padding: "10px 12px", border: "1.5px solid #E5E7EB",
+                    borderRadius: "8px", fontSize: "14px", color: "#111827",
+                    background: "#fff", outline: "none",
+                  }}
                 />
-                {isScore && (
-                  <p className="text-xs text-gray-400 mt-1.5">
-                    For BITSAT, a higher score means better eligibility (max 450).
-                  </p>
-                )}
               </div>
 
-              {/* Branch (optional) */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Preferred Branch{" "}
-                  <span className="font-normal text-gray-400">(optional)</span>
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => setBranch("")}
-                    className={`px-3 py-1.5 rounded-full text-xs border transition ${
-                      !branch
-                        ? "bg-blue-600 text-white border-blue-600"
-                        : "bg-gray-50 text-gray-600 border-gray-200 hover:border-blue-300"
-                    }`}
-                  >
-                    Any
-                  </button>
-                  {BRANCHES.map((b) => (
-                    <button
-                      key={b}
-                      onClick={() => setBranch(branch === b ? "" : b)}
-                      className={`px-3 py-1.5 rounded-full text-xs border transition ${
-                        branch === b
-                          ? "bg-blue-600 text-white border-blue-600"
-                          : "bg-gray-50 text-gray-600 border-gray-200 hover:border-blue-300"
-                      }`}
-                    >
-                      {b}
-                    </button>
+              {/* Category */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <label style={{ fontSize: "12px", fontWeight: 600, color: "#374151" }}>Category</label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  style={{
+                    padding: "10px 12px", border: "1.5px solid #E5E7EB",
+                    borderRadius: "8px", fontSize: "14px", color: "#111827",
+                    background: "#fff", outline: "none", cursor: "pointer",
+                  }}
+                >
+                  {CATEGORIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
                   ))}
-                </div>
+                </select>
               </div>
-
-              <button
-                onClick={handlePredict}
-                disabled={!rank || loading}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed text-white py-3 rounded-xl font-semibold transition"
-              >
-                {loading ? "Fetching predictions..." : "Predict My Colleges"}
-              </button>
             </div>
+
+            <button
+              onClick={handlePredict}
+              disabled={!percentile || !exam || loading}
+              style={{
+                padding: "10px 24px", background: (!percentile || loading) ? "#BFDBFE" : "#006AFF",
+                color: "#fff", borderRadius: "8px", fontSize: "14px",
+                fontWeight: 600, border: "none",
+                cursor: (!percentile || loading) ? "not-allowed" : "pointer",
+              }}
+            >
+              {loading ? "Predicting…" : "Predict My Colleges →"}
+            </button>
           </div>
 
           {/* Error */}
           {error && (
-            <div className="mt-4 bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">
+            <div style={{
+              background: "#FEF2F2", border: "1px solid #FECACA",
+              color: "#DC2626", borderRadius: "8px",
+              padding: "12px 16px", marginBottom: "24px", fontSize: "14px",
+            }}>
               {error}
             </div>
           )}
 
-          {/* Results */}
-          {searched && !loading && (
-            <div className="mt-8">
-              <h2 className="text-xl font-bold text-gray-900 mb-1">
-                {results.length > 0
-                  ? `${results.length} Eligible College${results.length > 1 ? "s" : ""} Found`
-                  : "No colleges found"}
-              </h2>
-              <p className="text-gray-500 text-sm mb-5">
-                {results.length > 0
-                  ? `Based on ${exam} ${isScore ? "score" : "rank"} ${rank}${branch ? ` with ${branch} preference` : ""}`
-                  : `No colleges matched your ${exam} ${isScore ? "score" : "rank"} of ${rank}. Try a different exam or rank.`}
-              </p>
+          {/* ── RESULTS ── */}
+          {searched && results.length === 0 && (
+            <div style={{ textAlign: "center", padding: "40px", color: "#9CA3AF", fontSize: "14px" }}>
+              No colleges found for this exam/score. Try a different exam or score.
+            </div>
+          )}
 
-              <div className="space-y-4">
-                {results.map((college) => (
-                  <div
-                    key={college.id}
-                    className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex flex-col sm:flex-row sm:items-center gap-4"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-start gap-3">
-                        <div className="flex-1">
-                          <h3 className="font-bold text-gray-900">
-                            {college.name}
-                          </h3>
-                          <p className="text-sm text-gray-500">
-                            📍 {college.location}
-                          </p>
-                        </div>
-                        <span
-                          className={`flex-shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full ${
-                            college.rating >= 4.5
-                              ? "bg-green-100 text-green-700"
-                              : college.rating >= 4.0
-                              ? "bg-blue-100 text-blue-700"
-                              : "bg-yellow-100 text-yellow-700"
-                          }`}
-                        >
-                          ⭐ {college.rating}
-                        </span>
-                      </div>
-
-                      <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-600">
-                        <span>💰 ₹{college.fees.toLocaleString("en-IN")} / yr</span>
-                        <span>📈 {college.placements}</span>
-                        <span>🏆 {college.highestPackage}</span>
-                      </div>
-
-                      <p className="mt-2 text-xs text-gray-400">
-                        🎯 Cutoff: {college.examCutoff}
-                      </p>
-                    </div>
-
-                    <div className="flex gap-2 flex-shrink-0">
-                      <Link
-                        href={`/college/${college.id}`}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition"
-                      >
-                        View
-                      </Link>
-                      <Link
-                        href={`/compare?id=${college.id}`}
-                        className="px-4 py-2 border border-gray-200 text-gray-700 rounded-lg text-sm hover:border-blue-400 hover:text-blue-600 transition"
-                      >
-                        Compare
-                      </Link>
-                    </div>
+          {results.length > 0 && (
+            <>
+              {/* Summary pills */}
+              <div style={{ display: "flex", gap: "12px", marginBottom: "24px", flexWrap: "wrap" }}>
+                {[
+                  { label: "✅ High",   count: high.length,   color: "#16A34A" },
+                  { label: "⚡ Medium", count: medium.length, color: "#D97706" },
+                  { label: "🎯 Low",    count: low.length,    color: "#DC2626" },
+                ].map(({ label, count, color }) => (
+                  <div key={label} style={{
+                    padding: "8px 16px", borderRadius: "20px",
+                    border: `1px solid ${color}22`, background: `${color}11`,
+                    fontSize: "13px", fontWeight: 600, color,
+                  }}>
+                    {label}: {count} college{count !== 1 ? "s" : ""}
                   </div>
                 ))}
               </div>
+
+              {/* Groups */}
+              {[
+                { title: "High Probability",   data: high,   prob: "high"   as const },
+                { title: "Medium Probability",  data: medium, prob: "medium" as const },
+                { title: "Low Probability",     data: low,    prob: "low"    as const },
+              ].filter((g) => g.data.length > 0).map((group) => (
+                <div key={group.prob} style={{ marginBottom: "32px" }}>
+                  <h2 style={{
+                    fontSize: "15px", fontWeight: 700, color: PROB_STYLES[group.prob].color,
+                    marginBottom: "12px",
+                  }}>
+                    {group.title} ({group.data.length})
+                  </h2>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                    {group.data.map((r) => (
+                      <CollegeResultCard key={r.collegeId} result={r} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+
+          {/* Empty state */}
+          {!searched && !loading && (
+            <div style={{ textAlign: "center", padding: "48px", color: "#9CA3AF" }}>
+              <div style={{ fontSize: "3rem", marginBottom: "12px" }}>🎓</div>
+              <p style={{ fontSize: "1rem", fontWeight: 600, color: "#374151" }}>
+                Enter your exam details above
+              </p>
+              <p style={{ fontSize: "14px", marginTop: "4px" }}>
+                We'll show you safe, moderate, and reach colleges based on 3 years of cutoff data
+              </p>
             </div>
           )}
+
         </div>
       </main>
     </>
+  );
+}
+
+// ── College Result Card ─────────────────────────────────────────────────────
+
+function CollegeResultCard({ result }: { result: PredictorResult }) {
+  const style = PROB_STYLES[result.probability];
+  return (
+    <div style={{
+      display: "flex", justifyContent: "space-between", alignItems: "center",
+      padding: "16px 20px", border: `1px solid ${style.border}`,
+      borderRadius: "10px", background: style.bg, gap: "12px", flexWrap: "wrap",
+    }}>
+      <div style={{ flex: 1 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+          <Link href={`/colleges/${result.slug}`} style={{
+            fontSize: "15px", fontWeight: 700, color: "#111827",
+          }}>
+            {result.name}
+          </Link>
+          {result.nirfRank && (
+            <span style={{
+              fontSize: "11px", fontWeight: 700, background: "#EFF6FF",
+              color: "#006AFF", border: "1px solid #BFDBFE",
+              borderRadius: "4px", padding: "1px 6px",
+            }}>
+              NIRF #{result.nirfRank}
+            </span>
+          )}
+        </div>
+        <p style={{ fontSize: "12px", color: "#6B7280" }}>{result.city}</p>
+        <p style={{ fontSize: "12px", color: "#6B7280", marginTop: "2px" }}>
+          Avg cutoff ({result.cutoffs.map((c) => c.year).join("/")}): <strong>{result.avgCutoff.toLocaleString("en-IN")}</strong>
+        </p>
+      </div>
+
+      <div style={{ display: "flex", gap: "20px", alignItems: "center", flexWrap: "wrap" }}>
+        {result.avgPackage && (
+          <div style={{ textAlign: "center" }}>
+            <p style={{ fontSize: "11px", color: "#6B7280" }}>Avg Package</p>
+            <p style={{ fontSize: "14px", fontWeight: 700, color: "#111827" }}>₹{result.avgPackage} LPA</p>
+          </div>
+        )}
+        {result.minFee && (
+          <div style={{ textAlign: "center" }}>
+            <p style={{ fontSize: "11px", color: "#6B7280" }}>Min Fee</p>
+            <p style={{ fontSize: "14px", fontWeight: 700, color: "#111827" }}>₹{(result.minFee / 100000).toFixed(1)}L/yr</p>
+          </div>
+        )}
+        <span style={{
+          padding: "6px 14px", borderRadius: "20px",
+          background: style.color, color: "#fff",
+          fontSize: "12px", fontWeight: 700,
+        }}>
+          {style.label}
+        </span>
+      </div>
+    </div>
   );
 }
