@@ -6,7 +6,6 @@ async function main() {
   console.log("🌱 Starting seed...");
 
   // Wipe existing data in dependency order
-  await prisma.savedCollege.deleteMany();
   await prisma.shortlist.deleteMany();
   await prisma.review.deleteMany();
   await prisma.admissionCutoff.deleteMany();

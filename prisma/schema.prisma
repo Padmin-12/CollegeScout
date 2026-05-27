@@ -38,12 +38,11 @@ model College {
   createdAt     DateTime     @default(now())
 
   // Relations
-  courseFees      CourseFee[]
-  placementStats  PlacementStat[]
+  courseFees       CourseFee[]
+  placementStats   PlacementStat[]
   admissionCutoffs AdmissionCutoff[]
-  reviews         Review[]
-  savedBy         SavedCollege[]
-  shortlists      Shortlist[]
+  reviews          Review[]
+  shortlists       Shortlist[]
 }
 
 model CourseFee {
@@ -107,32 +106,21 @@ model Review {
   @@index([collegeId, status])
 }
 
-// ─── Shortlist (anonymous, session-based) ─────────────────────────────────────
-
-model Shortlist {
-  id         String   @id @default(cuid())
-  sessionId  String   // anonymous client session token
-  collegeId  String
-  createdAt  DateTime @default(now())
-
-  college College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
-
-  @@unique([sessionId, collegeId])
-  @@index([sessionId])
-}
-
-// ─── Auth (existing — preserved) ──────────────────────────────────────────────
+// ─── Auth ─────────────────────────────────────────────────────────────────────
 
 model User {
-  id            String         @id @default(cuid())
-  email         String         @unique
+  id            String      @id @default(cuid())
+  email         String      @unique
   name          String?
   passwordHash  String
-  createdAt     DateTime       @default(now())
-  savedColleges SavedCollege[]
+  createdAt     DateTime    @default(now())
+
+  shortlists    Shortlist[]
 }
 
-model SavedCollege {
+// ─── Shortlist (user-tied) ─────────────────────────────────────────────────────
+
+model Shortlist {
   id        String   @id @default(cuid())
   userId    String
   collegeId String
@@ -142,4 +130,5 @@ model SavedCollege {
   college College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
 
   @@unique([userId, collegeId])
+  @@index([userId])
 }

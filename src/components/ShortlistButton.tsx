@@ -1,15 +1,7 @@
 "use client";
 
+import { useSession, signIn } from "next-auth/react";
 import { useEffect, useState } from "react";
-
-function getSessionId(): string {
-  let sessionId = localStorage.getItem("sessionId");
-  if (!sessionId) {
-    sessionId = `session_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
-    localStorage.setItem("sessionId", sessionId);
-  }
-  return sessionId;
-}
 
 type Props = {
   collegeId: string;
@@ -17,12 +9,19 @@ type Props = {
 };
 
 export default function ShortlistButton({ collegeId, variant = "secondary" }: Props) {
+  const { data: session, status } = useSession();
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Fetch current shortlist state (only when logged in)
   useEffect(() => {
-    const sessionId = getSessionId();
-    fetch("/api/shortlist", { headers: { "x-session-id": sessionId } })
+    if (status === "loading") return;
+    if (!session) {
+      setLoading(false);
+      return;
+    }
+
+    fetch("/api/shortlist")
       .then((r) => r.json())
       .then((data: Array<{ collegeId: string }>) => {
         if (Array.isArray(data)) {
@@ -31,23 +30,28 @@ export default function ShortlistButton({ collegeId, variant = "secondary" }: Pr
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [collegeId]);
+  }, [collegeId, session, status]);
 
   async function toggle() {
-    const sessionId = getSessionId();
+    // Not logged in — redirect to login
+    if (!session) {
+      signIn(undefined, { callbackUrl: window.location.pathname });
+      return;
+    }
+
     setLoading(true);
     try {
       if (saved) {
         await fetch("/api/shortlist", {
           method: "DELETE",
-          headers: { "Content-Type": "application/json", "x-session-id": sessionId },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ collegeId }),
         });
         setSaved(false);
       } else {
         await fetch("/api/shortlist", {
           method: "POST",
-          headers: { "Content-Type": "application/json", "x-session-id": sessionId },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ collegeId }),
         });
         setSaved(true);
@@ -60,12 +64,14 @@ export default function ShortlistButton({ collegeId, variant = "secondary" }: Pr
   }
 
   const isPrimary = variant === "primary";
+  const isLoadingAuth = status === "loading";
 
   return (
     <button
       type="button"
       onClick={toggle}
-      disabled={loading}
+      disabled={loading || isLoadingAuth}
+      title={!session ? "Sign in to save to your shortlist" : undefined}
       style={{
         padding: "9px 18px",
         border: isPrimary ? "none" : "1.5px solid #E5E7EB",
@@ -74,8 +80,8 @@ export default function ShortlistButton({ collegeId, variant = "secondary" }: Pr
         borderRadius: "8px",
         fontSize: "14px",
         fontWeight: 600,
-        cursor: loading ? "not-allowed" : "pointer",
-        opacity: loading ? 0.7 : 1,
+        cursor: loading || isLoadingAuth ? "not-allowed" : "pointer",
+        opacity: loading || isLoadingAuth ? 0.7 : 1,
       }}
     >
       {saved ? "★ Shortlisted" : "☆ Add to Shortlist"}

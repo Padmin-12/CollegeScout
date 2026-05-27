@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Toast from "@/components/Toast";
@@ -19,15 +20,6 @@ type ShortlistCollege = {
   minFee: number | null;
 };
 
-function getSessionId(): string {
-  let sessionId = localStorage.getItem("sessionId");
-  if (!sessionId) {
-    sessionId = `session_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
-    localStorage.setItem("sessionId", sessionId);
-  }
-  return sessionId;
-}
-
 const TYPE_LABEL: Record<string, string> = {
   GOVT: "Government",
   PRIVATE: "Private",
@@ -35,15 +27,16 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 export default function ShortlistPage() {
+  const { data: session, status } = useSession();
   const [colleges, setColleges] = useState<ShortlistCollege[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const fetchShortlist = useCallback(async () => {
+    if (!session) return;
     setLoading(true);
-    const sessionId = getSessionId();
     try {
-      const res = await fetch(`/api/shortlist/${encodeURIComponent(sessionId)}`);
+      const res = await fetch("/api/shortlist/colleges");
       if (!res.ok) throw new Error("Failed");
       const data = await res.json() as { colleges: ShortlistCollege[] };
       setColleges(data.colleges ?? []);
@@ -52,18 +45,21 @@ export default function ShortlistPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [session]);
 
   useEffect(() => {
-    fetchShortlist();
-  }, [fetchShortlist]);
+    if (status === "authenticated") {
+      fetchShortlist();
+    } else if (status === "unauthenticated") {
+      setLoading(false);
+    }
+  }, [status, fetchShortlist]);
 
   async function remove(collegeId: string) {
-    const sessionId = getSessionId();
     try {
       await fetch("/api/shortlist", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json", "x-session-id": sessionId },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ collegeId }),
       });
       setColleges((prev) => prev.filter((c) => c.id !== collegeId));
@@ -73,6 +69,26 @@ export default function ShortlistPage() {
     }
   }
 
+  // Auth loading
+  if (status === "loading" || (status === "authenticated" && loading)) {
+    return (
+      <>
+        <Navbar />
+        <main style={{ minHeight: "100vh", background: "#fff" }}>
+          <div style={{ maxWidth: "900px", margin: "0 auto", padding: "40px 24px 80px" }}>
+            <h1 style={{ fontSize: "1.75rem", fontWeight: 700, color: "#111827" }}>My Shortlist</h1>
+            <p style={{ color: "#6B7280", fontSize: "14px", marginTop: "6px", marginBottom: "28px" }}>Loading…</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {[1, 2, 3].map((i) => (
+                <div key={i} style={{ height: "100px", background: "#F3F4F6", borderRadius: "10px" }} />
+              ))}
+            </div>
+          </div>
+        </main>
+      </>
+    );
+  }
+
   return (
     <>
       <Navbar />
@@ -80,21 +96,10 @@ export default function ShortlistPage() {
         <div style={{ maxWidth: "900px", margin: "0 auto", padding: "40px 24px 80px" }}>
           <h1 style={{ fontSize: "1.75rem", fontWeight: 700, color: "#111827" }}>My Shortlist</h1>
           <p style={{ color: "#6B7280", fontSize: "14px", marginTop: "6px", marginBottom: "28px" }}>
-            {loading
-              ? "Loading…"
-              : `${colleges.length} college${colleges.length !== 1 ? "s" : ""} saved on this device`}
+            {`${colleges.length} college${colleges.length !== 1 ? "s" : ""} saved`}
           </p>
 
-          {loading ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  style={{ height: "100px", background: "#F3F4F6", borderRadius: "10px" }}
-                />
-              ))}
-            </div>
-          ) : colleges.length === 0 ? (
+          {colleges.length === 0 ? (
             <div
               style={{
                 textAlign: "center",
@@ -215,6 +220,7 @@ export default function ShortlistPage() {
                         borderRadius: "8px",
                         fontSize: "13px",
                         background: "#fff",
+                        cursor: "pointer",
                       }}
                     >
                       Remove
