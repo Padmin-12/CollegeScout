@@ -1,7 +1,8 @@
 "use client";
 
-import { useSession, signIn } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
+import AuthModal from "./AuthModal";
 
 type Props = {
   collegeId: string;
@@ -12,6 +13,7 @@ export default function ShortlistButton({ collegeId, variant = "secondary" }: Pr
   const { data: session, status } = useSession();
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   // Fetch current shortlist state (only when logged in)
   useEffect(() => {
@@ -33,9 +35,9 @@ export default function ShortlistButton({ collegeId, variant = "secondary" }: Pr
   }, [collegeId, session, status]);
 
   async function toggle() {
-    // Not logged in — redirect to login
+    // Not logged in — show inline modal instead of redirect
     if (!session) {
-      signIn(undefined, { callbackUrl: window.location.pathname });
+      setShowAuthModal(true);
       return;
     }
 
@@ -67,25 +69,35 @@ export default function ShortlistButton({ collegeId, variant = "secondary" }: Pr
   const isLoadingAuth = status === "loading";
 
   return (
-    <button
-      type="button"
-      onClick={toggle}
-      disabled={loading || isLoadingAuth}
-      title={!session ? "Sign in to save to your shortlist" : undefined}
-      style={{
-        padding: "9px 18px",
-        border: isPrimary ? "none" : "1.5px solid #DDDDDD",
-        background: saved ? "#FFF1F2" : isPrimary ? "#FF385C" : "#fff",
-        color: saved ? "#FF385C" : isPrimary ? "#fff" : "#717171",
-        borderRadius: "12px",
-        fontSize: "14px",
-        fontWeight: 600,
-        cursor: loading || isLoadingAuth ? "not-allowed" : "pointer",
-        opacity: loading || isLoadingAuth ? 0.7 : 1,
-        transition: "all 0.2s ease",
-      }}
-    >
-      {saved ? "★ Shortlisted" : "☆ Add to Shortlist"}
-    </button>
+    <>
+      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+
+      <button
+        type="button"
+        onClick={toggle}
+        disabled={loading || isLoadingAuth}
+        title={!session ? "Sign in to save to your shortlist" : undefined}
+        style={{
+          padding: "9px 18px",
+          border: isPrimary ? "none" : "1.5px solid #DDDDDD",
+          background: saved ? "#FFF1F2" : isPrimary ? "#FF385C" : "#fff",
+          color: saved ? "#FF385C" : isPrimary ? "#fff" : "#717171",
+          borderRadius: "12px",
+          fontSize: "14px",
+          fontWeight: 600,
+          cursor: loading || isLoadingAuth ? "not-allowed" : "pointer",
+          opacity: loading || isLoadingAuth ? 0.7 : 1,
+          transition: "all 0.2s ease",
+        }}
+        onMouseEnter={(e) => {
+          if (!saved && !isPrimary) e.currentTarget.style.borderColor = "#222222";
+        }}
+        onMouseLeave={(e) => {
+          if (!saved && !isPrimary) e.currentTarget.style.borderColor = "#DDDDDD";
+        }}
+      >
+        {saved ? "★ Shortlisted" : "☆ Add to Shortlist"}
+      </button>
+    </>
   );
 }
