@@ -81,46 +81,68 @@ function LoginForm() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
+    <main style={{
+      minHeight: "100vh",
+      background: "#F7F7F7",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "0 16px",
+    }}>
+      <div style={{ width: "100%", maxWidth: "420px" }}>
         {/* Logo */}
-        <div className="text-center mb-8">
+        <div style={{ textAlign: "center", marginBottom: "32px" }}>
           <Link href="/">
-            <h1 className="text-3xl font-bold text-blue-600">CollegeScout</h1>
+            <span style={{ fontSize: "26px", fontWeight: 700, color: "#FF385C", letterSpacing: "-0.03em" }}>
+              CollegeHunt
+            </span>
           </Link>
-          <p className="text-gray-500 mt-2 text-sm">
+          <p style={{ color: "#717171", marginTop: "8px", fontSize: "14px" }}>
             {tab === "login"
               ? "Sign in to access your saved colleges"
               : "Create an account to start your shortlist"}
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-md p-8">
+        <div style={{
+          background: "#fff",
+          borderRadius: "16px",
+          boxShadow: "0 6px 16px rgba(0,0,0,0.12)",
+          padding: "32px",
+        }}>
           {/* Tabs */}
-          <div className="flex rounded-xl bg-gray-100 p-1 mb-6">
+          <div style={{
+            display: "flex",
+            background: "#F7F7F7",
+            borderRadius: "12px",
+            padding: "4px",
+            marginBottom: "24px",
+          }}>
             <button
-              onClick={() => {
-                setTab("login");
-                setError("");
+              id="tab-login"
+              onClick={() => { setTab("login"); setError(""); }}
+              style={{
+                flex: 1, padding: "8px", borderRadius: "8px",
+                fontSize: "14px", fontWeight: 500, border: "none", cursor: "pointer",
+                background: tab === "login" ? "#fff" : "transparent",
+                color: tab === "login" ? "#FF385C" : "#717171",
+                boxShadow: tab === "login" ? "0 1px 4px rgba(0,0,0,0.10)" : "none",
+                transition: "all 0.2s ease",
               }}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${
-                tab === "login"
-                  ? "bg-white text-blue-600 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
             >
               Sign In
             </button>
             <button
-              onClick={() => {
-                setTab("register");
-                setError("");
+              id="tab-register"
+              onClick={() => { setTab("register"); setError(""); }}
+              style={{
+                flex: 1, padding: "8px", borderRadius: "8px",
+                fontSize: "14px", fontWeight: 500, border: "none", cursor: "pointer",
+                background: tab === "register" ? "#fff" : "transparent",
+                color: tab === "register" ? "#FF385C" : "#717171",
+                boxShadow: tab === "register" ? "0 1px 4px rgba(0,0,0,0.10)" : "none",
+                transition: "all 0.2s ease",
               }}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${
-                tab === "register"
-                  ? "bg-white text-blue-600 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
             >
               Create Account
             </button>
@@ -128,19 +150,20 @@ function LoginForm() {
 
           {/* Error */}
           {error && (
-            <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            <div style={{
+              marginBottom: "16px", padding: "12px 16px",
+              background: "#FEF2F2", border: "1px solid #FECACA",
+              borderRadius: "8px", color: "#DC2626", fontSize: "14px",
+            }}>
               {error}
             </div>
           )}
 
           {/* Form */}
-          <form
-            onSubmit={tab === "login" ? handleLogin : handleRegister}
-            className="space-y-4"
-          >
+          <form onSubmit={tab === "login" ? handleLogin : handleRegister} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             {tab === "register" && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#222222", marginBottom: "6px" }}>
                   Name (optional)
                 </label>
                 <input
@@ -148,66 +171,90 @@ function LoginForm() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Your name"
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  style={inputStyle}
                 />
               </div>
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#222222", marginBottom: "6px" }}>
                 Email
               </label>
               <input
+                id="email-input"
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                style={inputStyle}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#222222", marginBottom: "6px" }}>
                 Password
               </label>
               <input
+                id="password-input"
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder={
-                  tab === "register"
-                    ? "At least 6 characters"
-                    : "Your password"
-                }
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                placeholder={tab === "register" ? "At least 6 characters" : "Your password"}
+                style={inputStyle}
               />
             </div>
 
             <button
+              id="submit-btn"
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-3 rounded-lg font-semibold transition"
+              style={{
+                width: "100%",
+                background: loading ? "#FFBDCA" : "#FF385C",
+                color: "#fff",
+                padding: "13px",
+                borderRadius: "12px",
+                fontWeight: 600,
+                fontSize: "15px",
+                border: "none",
+                cursor: loading ? "not-allowed" : "pointer",
+                transition: "all 0.2s ease",
+                marginTop: "4px",
+              }}
             >
-              {loading
-                ? "Please wait..."
-                : tab === "login"
-                ? "Sign In"
-                : "Create Account"}
+              {loading ? "Please wait..." : tab === "login" ? "Sign In" : "Create Account"}
             </button>
           </form>
         </div>
 
-        <p className="text-center text-sm text-gray-500 mt-6">
-          <Link href="/" className="hover:text-blue-600 transition">
-            ← Back to CollegeScout
+        <p style={{ textAlign: "center", fontSize: "13px", color: "#717171", marginTop: "20px" }}>
+          <Link
+            href="/"
+            style={{ color: "#717171", transition: "color 0.2s ease" }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "#FF385C")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#717171")}
+          >
+            ← Back to CollegeHunt
           </Link>
         </p>
       </div>
     </main>
   );
 }
+
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  padding: "11px 14px",
+  border: "1.5px solid #DDDDDD",
+  borderRadius: "12px",
+  fontSize: "14px",
+  color: "#222222",
+  background: "#fff",
+  outline: "none",
+  transition: "border-color 0.2s ease",
+};
 
 export default function LoginPage() {
   return (

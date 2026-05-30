@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "CollegeScout — Discover Your Ideal College in India",
+  title: "CollegeHunt — Discover Your Ideal College in India",
   description:
     "Search, compare, and shortlist top Indian colleges. Smart admission predictor, placement data, and personalised scoring. Discover → Shortlist → Compare → Decide.",
 };

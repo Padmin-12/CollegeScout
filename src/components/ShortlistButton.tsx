@@ -74,14 +74,15 @@ export default function ShortlistButton({ collegeId, variant = "secondary" }: Pr
       title={!session ? "Sign in to save to your shortlist" : undefined}
       style={{
         padding: "9px 18px",
-        border: isPrimary ? "none" : "1.5px solid #E5E7EB",
-        background: saved ? "#FFFBEB" : isPrimary ? "#006AFF" : "#fff",
-        color: saved ? "#D97706" : isPrimary ? "#fff" : "#374151",
-        borderRadius: "8px",
+        border: isPrimary ? "none" : "1.5px solid #DDDDDD",
+        background: saved ? "#FFF1F2" : isPrimary ? "#FF385C" : "#fff",
+        color: saved ? "#FF385C" : isPrimary ? "#fff" : "#717171",
+        borderRadius: "12px",
         fontSize: "14px",
         fontWeight: 600,
         cursor: loading || isLoadingAuth ? "not-allowed" : "pointer",
         opacity: loading || isLoadingAuth ? 0.7 : 1,
+        transition: "all 0.2s ease",
       }}
     >
       {saved ? "★ Shortlisted" : "☆ Add to Shortlist"}

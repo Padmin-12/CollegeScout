@@ -209,13 +209,14 @@ export default function ReviewsSection({ collegeSlug, initialReviews }: Props) {
           onClick={() => setShowForm(true)}
           style={{
             padding: "9px 18px",
-            border: "1.5px solid #006AFF",
-            color: "#006AFF",
-            borderRadius: "8px",
+            border: "1.5px solid #FF385C",
+            color: "#FF385C",
+            borderRadius: "12px",
             fontSize: "14px",
             fontWeight: 600,
             background: "#fff",
             cursor: "pointer",
+            transition: "all 0.2s ease",
           }}
         >
           Write a Review
@@ -321,9 +322,9 @@ export default function ReviewsSection({ collegeSlug, initialReviews }: Props) {
               disabled={submitting}
               style={{
                 padding: "9px 20px",
-                background: submitting ? "#93C5FD" : "#006AFF",
+                background: submitting ? "#FFBDCA" : "#FF385C",
                 color: "#fff",
-                borderRadius: "8px",
+                borderRadius: "12px",
                 fontSize: "14px",
                 fontWeight: 600,
                 border: "none",
@@ -340,9 +341,9 @@ export default function ReviewsSection({ collegeSlug, initialReviews }: Props) {
               }}
               style={{
                 padding: "9px 20px",
-                border: "1.5px solid #E5E7EB",
-                color: "#374151",
-                borderRadius: "8px",
+                border: "1.5px solid #DDDDDD",
+                color: "#222222",
+                borderRadius: "12px",
                 fontSize: "14px",
                 background: "#fff",
                 cursor: "pointer",
@@ -429,10 +430,10 @@ function Field({
 
 const inputStyle: React.CSSProperties = {
   padding: "8px 12px",
-  border: "1.5px solid #E5E7EB",
-  borderRadius: "6px",
+  border: "1.5px solid #DDDDDD",
+  borderRadius: "8px",
   fontSize: "14px",
-  color: "#111827",
+  color: "#222222",
   background: "#fff",
   outline: "none",
   width: "100%",

@@ -64,7 +64,7 @@ export default function CutoffsSection({ cutoffs }: Props) {
             </p>
             <p style={{ fontSize: "15px", color: "#374151" }}>
               Last {cutoffValueLabel(s.exam).toLowerCase()} to get in (any branch):{" "}
-              <strong style={{ fontSize: "1.35rem", color: "#006AFF" }}>
+              <strong style={{ fontSize: "1.35rem", color: "#FF385C" }}>
                 {s.lastClosingRank.toLocaleString("en-IN")}
               </strong>
               <span style={{ fontSize: "13px", color: "#9CA3AF", marginLeft: "8px" }}>
@@ -127,7 +127,7 @@ export default function CutoffsSection({ cutoffs }: Props) {
       {/* Other categories / years — collapsed detail */}
       {summaries.length > headline.length && (
         <details style={{ fontSize: "13px", color: "#6B7280" }}>
-          <summary style={{ cursor: "pointer", fontWeight: 600, color: "#006AFF" }}>
+          <summary style={{ cursor: "pointer", fontWeight: 600, color: "#FF385C" }}>
             All categories & years ({summaries.length} records)
           </summary>
           <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>

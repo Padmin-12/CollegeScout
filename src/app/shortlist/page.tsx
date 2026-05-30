@@ -120,9 +120,9 @@ export default function ShortlistPage() {
                 style={{
                   display: "inline-block",
                   padding: "10px 20px",
-                  background: "#006AFF",
+                  background: "#FF385C",
                   color: "#fff",
-                  borderRadius: "8px",
+                  borderRadius: "12px",
                   fontWeight: 600,
                   fontSize: "14px",
                 }}
@@ -139,9 +139,9 @@ export default function ShortlistPage() {
                     alignSelf: "flex-start",
                     marginBottom: "8px",
                     padding: "8px 16px",
-                    background: "#006AFF",
+                    background: "#FF385C",
                     color: "#fff",
-                    borderRadius: "8px",
+                    borderRadius: "12px",
                     fontSize: "13px",
                     fontWeight: 600,
                   }}
@@ -176,10 +176,10 @@ export default function ShortlistPage() {
                           style={{
                             fontSize: "11px",
                             fontWeight: 700,
-                            color: "#006AFF",
-                            background: "#EFF6FF",
+                            color: "#FF385C",
+                            background: "#FFF1F2",
                             padding: "2px 8px",
-                            borderRadius: "4px",
+                            borderRadius: "6px",
                           }}
                         >
                           NIRF #{c.nirfRank}
@@ -201,9 +201,9 @@ export default function ShortlistPage() {
                       href={`/colleges/${c.slug}`}
                       style={{
                         padding: "8px 14px",
-                        background: "#006AFF",
+                        background: "#FF385C",
                         color: "#fff",
-                        borderRadius: "8px",
+                        borderRadius: "12px",
                         fontSize: "13px",
                         fontWeight: 600,
                       }}

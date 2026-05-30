@@ -65,7 +65,7 @@ export default async function CollegeDetailPage({ params }: Props) {
 
           {/* Breadcrumb */}
           <nav style={{ fontSize: "13px", color: "#9CA3AF", marginBottom: "20px" }}>
-            <Link href="/" style={{ color: "#006AFF" }}>Colleges</Link>
+            <Link href="/" style={{ color: "#FF385C" }}>Colleges</Link>
             <span style={{ margin: "0 6px" }}>›</span>
             <span>{college.name}</span>
           </nav>
@@ -74,7 +74,7 @@ export default async function CollegeDetailPage({ params }: Props) {
           <div style={{ marginBottom: "36px" }}>
             <div style={{ display: "flex", gap: "8px", marginBottom: "12px", flexWrap: "wrap" }}>
               {college.nirfRank && (
-                <span style={styles.badge("#EFF6FF", "#006AFF", "#BFDBFE")}>
+                <span style={styles.badge("#FFF1F2", "#FF385C", "rgba(255,56,92,0.25)")}>
                   NIRF #{college.nirfRank}
                 </span>
               )}
@@ -88,16 +88,16 @@ export default async function CollegeDetailPage({ params }: Props) {
               )}
             </div>
 
-            <h1 style={{ fontSize: "2rem", fontWeight: 700, color: "#111827", lineHeight: 1.2, marginBottom: "8px" }}>
+            <h1 style={{ fontSize: "2rem", fontWeight: 700, color: "#222222", lineHeight: 1.2, marginBottom: "8px" }}>
               {college.name}
             </h1>
-            <p style={{ fontSize: "15px", color: "#6B7280" }}>
+            <p style={{ fontSize: "15px", color: "#717171" }}>
               {college.city}, {college.state} &nbsp;·&nbsp; Est. {college.established}
               {college.website && (
                 <>
                   &nbsp;·&nbsp;
                   <a href={college.website} target="_blank" rel="noopener noreferrer"
-                    style={{ color: "#006AFF" }}>
+                    style={{ color: "#FF385C" }}>
                     Website ↗
                   </a>
                 </>
@@ -145,14 +145,14 @@ export default async function CollegeDetailPage({ params }: Props) {
               {college.courseFees.map((cf) => (
                 <div key={cf.id} style={{
                   display: "flex", justifyContent: "space-between", alignItems: "center",
-                  padding: "14px 16px", border: "1px solid #E5E7EB", borderRadius: "8px",
+                  padding: "14px 16px", border: "1px solid #DDDDDD", borderRadius: "12px",
                   fontSize: "14px",
                 }}>
                   <div>
-                    <span style={{ fontWeight: 600, color: "#111827" }}>{cf.course}</span>
-                    <span style={{ color: "#9CA3AF", marginLeft: "8px" }}>{cf.degree}</span>
+                    <span style={{ fontWeight: 600, color: "#222222" }}>{cf.course}</span>
+                    <span style={{ color: "#717171", marginLeft: "8px" }}>{cf.degree}</span>
                   </div>
-                  <span style={{ fontWeight: 700, color: "#006AFF", whiteSpace: "nowrap" }}>
+                  <span style={{ fontWeight: 700, color: "#FF385C", whiteSpace: "nowrap" }}>
                     ₹{cf.annualFee.toLocaleString("en-IN")}<span style={{ fontWeight: 400, color: "#9CA3AF", fontSize: "12px" }}>/yr</span>
                   </span>
                 </div>
@@ -202,14 +202,14 @@ export default async function CollegeDetailPage({ params }: Props) {
 function QuickStat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div style={{
-      border: "1px solid #E5E7EB", borderRadius: "10px", padding: "16px",
+      border: "1px solid #DDDDDD", borderRadius: "12px", padding: "16px",
       textAlign: "center",
     }}>
-      <p style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "#9CA3AF", marginBottom: "6px" }}>
+      <p style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "#AAAAAA", marginBottom: "6px" }}>
         {label}
       </p>
-      <p style={{ fontSize: "1.25rem", fontWeight: 700, color: "#111827" }}>{value}</p>
-      {sub && <p style={{ fontSize: "11px", color: "#9CA3AF", marginTop: "2px" }}>{sub}</p>}
+      <p style={{ fontSize: "1.25rem", fontWeight: 700, color: "#222222" }}>{value}</p>
+      {sub && <p style={{ fontSize: "11px", color: "#AAAAAA", marginTop: "2px" }}>{sub}</p>}
     </div>
   );
 }
@@ -218,8 +218,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   return (
     <div style={{ marginBottom: "40px" }}>
       <h2 style={{
-        fontSize: "1.1rem", fontWeight: 700, color: "#111827",
-        paddingBottom: "12px", borderBottom: "1px solid #E5E7EB", marginBottom: "20px",
+        fontSize: "1.1rem", fontWeight: 700, color: "#222222",
+        paddingBottom: "12px", borderBottom: "1px solid #DDDDDD", marginBottom: "20px",
       }}>
         {title}
       </h2>
@@ -234,11 +234,11 @@ const styles = {
     fontSize: "11px", fontWeight: 600, background: bg, color, border: `1px solid ${border}`,
   }),
   btnPrimary: {
-    padding: "9px 18px", background: "#006AFF", color: "#fff",
-    borderRadius: "8px", fontSize: "14px", fontWeight: 600,
+    padding: "9px 18px", background: "#FF385C", color: "#fff",
+    borderRadius: "12px", fontSize: "14px", fontWeight: 600,
   } as React.CSSProperties,
   btnSecondary: {
-    padding: "9px 18px", border: "1.5px solid #E5E7EB", color: "#374151",
-    borderRadius: "8px", fontSize: "14px", background: "#fff",
+    padding: "9px 18px", border: "1.5px solid #DDDDDD", color: "#222222",
+    borderRadius: "12px", fontSize: "14px", background: "#fff",
   } as React.CSSProperties,
 };

@@ -170,8 +170,8 @@ export default function PredictorPage() {
               onClick={handlePredict}
               disabled={!percentile || !exam || loading}
               style={{
-                padding: "10px 24px", background: (!percentile || loading) ? "#BFDBFE" : "#006AFF",
-                color: "#fff", borderRadius: "8px", fontSize: "14px",
+                padding: "10px 24px", background: (!percentile || loading) ? "#FFBDCA" : "#FF385C",
+                color: "#fff", borderRadius: "12px", fontSize: "14px",
                 fontWeight: 600, border: "none",
                 cursor: (!percentile || loading) ? "not-allowed" : "pointer",
               }}
@@ -278,9 +278,9 @@ function CollegeResultCard({ result }: { result: PredictorResult }) {
           </Link>
           {result.nirfRank && (
             <span style={{
-              fontSize: "11px", fontWeight: 700, background: "#EFF6FF",
-              color: "#006AFF", border: "1px solid #BFDBFE",
-              borderRadius: "4px", padding: "1px 6px",
+              fontSize: "11px", fontWeight: 700, background: "#FFF1F2",
+              color: "#FF385C", border: "1px solid rgba(255,56,92,0.25)",
+              borderRadius: "6px", padding: "1px 6px",
             }}>
               NIRF #{result.nirfRank}
             </span>

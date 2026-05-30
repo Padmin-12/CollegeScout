@@ -20,30 +20,63 @@ export default function Toast({
     return () => clearTimeout(timer);
   }, [onClose, duration]);
 
-  const colors = {
-    success: "bg-green-600",
-    error: "bg-red-600",
-    info: "bg-blue-600",
+  const styles: Record<string, React.CSSProperties> = {
+    success: { background: "#222222", color: "#fff" },
+    error:   { background: "#FF385C", color: "#fff" },
+    info:    { background: "#222222", color: "#fff" },
   };
 
   const icons = {
     success: "✓",
-    error: "✕",
-    info: "ℹ",
+    error:   "✕",
+    info:    "ℹ",
   };
 
   return (
     <div
-      className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl text-white shadow-xl ${colors[type]} transition-all duration-300`}
+      style={{
+        position: "fixed",
+        bottom: "24px",
+        right: "24px",
+        zIndex: 9999,
+        display: "flex",
+        alignItems: "center",
+        gap: "12px",
+        padding: "14px 20px",
+        borderRadius: "12px",
+        boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
+        fontSize: "14px",
+        fontWeight: 500,
+        maxWidth: "360px",
+        animation: "toastIn 0.2s ease",
+        ...styles[type],
+      }}
     >
-      <span className="font-bold text-lg">{icons[type]}</span>
-      <p className="text-sm font-medium">{message}</p>
+      <span style={{ fontWeight: 700, fontSize: "16px" }}>{icons[type]}</span>
+      <p style={{ flex: 1, margin: 0 }}>{message}</p>
       <button
         onClick={onClose}
-        className="ml-2 opacity-70 hover:opacity-100 transition"
+        style={{
+          background: "none",
+          border: "none",
+          color: "inherit",
+          opacity: 0.7,
+          cursor: "pointer",
+          fontSize: "16px",
+          padding: "0 0 0 4px",
+          transition: "opacity 0.2s ease",
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+        onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
       >
         ✕
       </button>
+      <style>{`
+        @keyframes toastIn {
+          from { opacity: 0; transform: translateY(12px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }

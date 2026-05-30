@@ -17,7 +17,7 @@ export default function PlacementsSection({ stats }: { stats: PlacementStat[] })
       {stats.map((stat) => (
         <div key={stat.id}>
           {/* Year header */}
-          <p style={{ fontSize: "13px", fontWeight: 700, color: "#006AFF", marginBottom: "14px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          <p style={{ fontSize: "13px", fontWeight: 700, color: "#FF385C", marginBottom: "14px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
             {stat.year}
           </p>
 
@@ -28,7 +28,7 @@ export default function PlacementsSection({ stats }: { stats: PlacementStat[] })
               value={stat.avgPackage}
               max={maxPkg}
               display={`₹${stat.avgPackage} LPA`}
-              color="#006AFF"
+              color="#FF385C"
             />
             <Bar
               label="Highest Package"
@@ -48,7 +48,7 @@ export default function PlacementsSection({ stats }: { stats: PlacementStat[] })
             <div style={{ height: "6px", background: "#F3F4F6", borderRadius: "99px", overflow: "hidden" }}>
               <div style={{
                 height: "100%", width: `${stat.placementPct}%`,
-                background: "#006AFF", borderRadius: "99px",
+                background: "#FF385C", borderRadius: "99px",
               }} />
             </div>
           </div>

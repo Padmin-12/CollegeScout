@@ -7,7 +7,103 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ─── Enums ────────────────────────────────────────────────────────────────────
+model College {
+  id               String            @id @default(cuid())
+  slug             String            @unique
+  name             String
+  city             String
+  state            String
+  type             CollegeType
+  streams          String[]
+  nirfRank         Int?
+  established      Int
+  website          String?
+  accreditation    String?
+  createdAt        DateTime          @default(now())
+  admissionCutoffs AdmissionCutoff[]
+  courseFees       CourseFee[]
+  placementStats   PlacementStat[]
+  reviews          Review[]
+  shortlists       Shortlist[]
+}
+
+model CourseFee {
+  id        String  @id @default(cuid())
+  collegeId String
+  course    String
+  degree    String
+  annualFee Int
+  college   College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+
+  @@index([collegeId])
+}
+
+model PlacementStat {
+  id            String   @id @default(cuid())
+  collegeId     String
+  year          Int
+  avgPackage    Float
+  maxPackage    Float
+  placementPct  Float
+  topRecruiters String[]
+  college       College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+
+  @@unique([collegeId, year])
+  @@index([collegeId])
+}
+
+model AdmissionCutoff {
+  id          String  @id @default(cuid())
+  collegeId   String
+  exam        String
+  year        Int
+  category    String
+  branch      String  @default("All Branches")
+  cutoffValue Float
+  college     College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+
+  @@unique([collegeId, exam, year, category, branch])
+  @@index([collegeId])
+}
+
+model Review {
+  id              String       @id @default(cuid())
+  collegeId       String
+  authorName      String
+  batchYear       Int
+  stream          String
+  ratingOverall   Float
+  ratingPlacement Float
+  ratingFaculty   Float
+  ratingInfra     Float
+  body            String
+  status          ReviewStatus @default(PENDING)
+  createdAt       DateTime     @default(now())
+  college         College      @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+
+  @@index([collegeId, status])
+}
+
+model User {
+  id           String      @id @default(cuid())
+  email        String      @unique
+  name         String?
+  passwordHash String
+  createdAt    DateTime    @default(now())
+  shortlists   Shortlist[]
+}
+
+model Shortlist {
+  id        String   @id @default(cuid())
+  userId    String
+  collegeId String
+  createdAt DateTime @default(now())
+  college   College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, collegeId])
+  @@index([userId])
+}
 
 enum CollegeType {
   GOVT
@@ -19,116 +115,4 @@ enum ReviewStatus {
   PENDING
   APPROVED
   REJECTED
-}
-
-// ─── Core Models ──────────────────────────────────────────────────────────────
-
-model College {
-  id            String       @id @default(cuid())
-  slug          String       @unique
-  name          String
-  city          String
-  state         String
-  type          CollegeType
-  streams       String[]     // e.g. ["Engineering", "Management"]
-  nirfRank      Int?
-  established   Int
-  website       String?
-  accreditation String?      // e.g. "NAAC A++"
-  createdAt     DateTime     @default(now())
-
-  // Relations
-  courseFees       CourseFee[]
-  placementStats   PlacementStat[]
-  admissionCutoffs AdmissionCutoff[]
-  reviews          Review[]
-  shortlists       Shortlist[]
-}
-
-model CourseFee {
-  id         String  @id @default(cuid())
-  collegeId  String
-  course     String  // e.g. "Computer Science & Engineering"
-  degree     String  // e.g. "B.Tech"
-  annualFee  Int     // in INR
-
-  college College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
-
-  @@index([collegeId])
-}
-
-model PlacementStat {
-  id             String   @id @default(cuid())
-  collegeId      String
-  year           Int      // e.g. 2024
-  avgPackage     Float    // in LPA
-  maxPackage     Float    // in LPA
-  placementPct   Float    // e.g. 92.5
-  topRecruiters  String[] // e.g. ["Google", "Microsoft"]
-
-  college College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
-
-  @@unique([collegeId, year])
-  @@index([collegeId])
-}
-
-model AdmissionCutoff {
-  id           String  @id @default(cuid())
-  collegeId    String
-  exam         String  // e.g. "JEE Advanced", "JEE Mains", "MHT-CET"
-  year         Int
-  category     String  // e.g. "General", "OBC", "SC", "ST"
-  branch       String  @default("All Branches") // e.g. "CSE", "Mechanical", "All Branches"
-  cutoffValue  Float   // rank or percentile depending on exam
-
-  college College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
-
-  @@unique([collegeId, exam, year, category, branch])
-  @@index([collegeId])
-}
-
-model Review {
-  id               String       @id @default(cuid())
-  collegeId        String
-  authorName       String
-  batchYear        Int
-  stream           String
-  ratingOverall    Float        // 1–5
-  ratingPlacement  Float        // 1–5
-  ratingFaculty    Float        // 1–5
-  ratingInfra      Float        // 1–5
-  body             String       // min 80 chars enforced in API
-  status           ReviewStatus @default(PENDING)
-  createdAt        DateTime     @default(now())
-
-  college College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
-
-  @@index([collegeId, status])
-}
-
-// ─── Auth ─────────────────────────────────────────────────────────────────────
-
-model User {
-  id            String      @id @default(cuid())
-  email         String      @unique
-  name          String?
-  passwordHash  String
-  createdAt     DateTime    @default(now())
-
-  shortlists    Shortlist[]
-}
-
-// ─── Shortlist (user-tied) ─────────────────────────────────────────────────────
-
-model Shortlist {
-  id        String   @id @default(cuid())
-  userId    String
-  collegeId String
-  createdAt DateTime @default(now())
-
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  college College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, collegeId])
-  @@index([userId])
 }

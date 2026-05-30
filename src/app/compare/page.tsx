@@ -187,7 +187,7 @@ for (const c of compared) {
   const bestFee  = best("minAnnualFee", "lower");
   const bestNirf = best("nirfRank",     "lower");
 
-  const scoreColors = ["#006AFF", "#16A34A", "#D97706"];
+  const scoreColors = ["#FF385C", "#16A34A", "#D97706"];
 
   return (
     <>
@@ -244,7 +244,7 @@ for (const c of compared) {
                 style={{
                   padding: "9px 22px", borderRadius: "8px", fontSize: "14px",
                   fontWeight: 600, border: "none", cursor: (!slug1 || !slug2) ? "not-allowed" : "pointer",
-                  background: (!slug1 || !slug2) ? "#BFDBFE" : "#006AFF",
+                  background: (!slug1 || !slug2) ? "#FFBDCA" : "#FF385C",
                   color: "#fff", flexShrink: 0,
                 }}
               >
@@ -272,7 +272,7 @@ for (const c of compared) {
                 Adjust Your Priorities
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px" }}>
-                <Slider label="Placement Package" value={wPlacement} onChange={setWPlacement} color="#006AFF" />
+                <Slider label="Placement Package" value={wPlacement} onChange={setWPlacement} color="#FF385C" />
                 <Slider label="Affordability (fees)" value={wFees} onChange={setWFees} color="#16A34A" />
                 <Slider label="Location Preference" value={wLocation} onChange={setWLocation} color="#D97706" />              </div>
               <p style={{ fontSize: "12px", color: "#9CA3AF", marginTop: "12px" }}>
@@ -285,14 +285,14 @@ for (const c of compared) {
             <div style={{ display: "grid", gridTemplateColumns: `repeat(${ranked.length}, 1fr)`, gap: "12px", marginBottom: "28px" }}>
               {ranked.map((c, i) => (
                 <div key={c.id} style={{
-                  border: `2px solid ${i === 0 ? scoreColors[0] : "#E5E7EB"}`,
+                  border: `2px solid ${i === 0 ? scoreColors[0] : "#DDDDDD"}`,
                   borderRadius: "12px", padding: "20px",
-                  background: i === 0 ? "#EFF6FF" : "#fff",
+                  background: i === 0 ? "#FFF1F2" : "#fff",
                 }}>
                   {i === 0 && (
                     <div style={{
                       display: "inline-block", fontSize: "11px", fontWeight: 700,
-                      background: "#006AFF", color: "#fff", borderRadius: "4px",
+                      background: "#FF385C", color: "#fff", borderRadius: "6px",
                       padding: "2px 8px", marginBottom: "8px",
                     }}>
                       #1 Best Match

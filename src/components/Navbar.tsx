@@ -11,7 +11,7 @@ export default function Navbar() {
   return (
     <nav style={{
       background: "#fff",
-      borderBottom: "1px solid #E5E7EB",
+      borderBottom: "1px solid #DDDDDD",
       position: "sticky",
       top: 0,
       zIndex: 40,
@@ -20,23 +20,23 @@ export default function Navbar() {
         maxWidth: "1280px",
         margin: "0 auto",
         padding: "0 24px",
-        height: "56px",
+        height: "64px",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
       }}>
         {/* Logo */}
         <Link href="/" style={{
-          fontSize: "18px",
+          fontSize: "20px",
           fontWeight: 700,
-          color: "#006AFF",
-          letterSpacing: "-0.02em",
+          color: "#FF385C",
+          letterSpacing: "-0.03em",
         }}>
-          CollegeScout
+          CollegeHunt
         </Link>
 
         {/* Desktop nav */}
-        <div style={{ display: "flex", alignItems: "center", gap: "28px" }} className="nav-desktop">
+        <div style={{ display: "flex", alignItems: "center", gap: "32px" }} className="nav-desktop">
           <NavLink href="/">Colleges</NavLink>
           <NavLink href="/compare">Compare</NavLink>
           <NavLink href="/predictor">Predictor</NavLink>
@@ -44,20 +44,27 @@ export default function Navbar() {
 
           {session ? (
             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <span style={{ fontSize: "13px", color: "#6B7280" }}>
+              <span style={{ fontSize: "13px", color: "#717171" }}>
                 {session.user?.name ?? session.user?.email}
               </span>
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
                 style={{
-                  padding: "6px 14px",
-                  border: "1.5px solid #E5E7EB",
-                  borderRadius: "6px",
+                  padding: "7px 16px",
+                  border: "1.5px solid #DDDDDD",
+                  borderRadius: "12px",
                   fontSize: "13px",
                   fontWeight: 500,
-                  color: "#374151",
+                  color: "#222222",
                   background: "#fff",
                   cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#222222";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#DDDDDD";
                 }}
               >
                 Sign Out
@@ -65,13 +72,22 @@ export default function Navbar() {
             </div>
           ) : (
             <Link href="/login" style={{
-              padding: "7px 16px",
-              background: "#006AFF",
+              padding: "9px 20px",
+              background: "#FF385C",
               color: "#fff",
-              borderRadius: "6px",
+              borderRadius: "12px",
               fontSize: "13px",
               fontWeight: 600,
-            }}>
+              transition: "all 0.2s ease",
+              display: "inline-block",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.background = "#E31C5F";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.background = "#FF385C";
+            }}
+            >
               Sign In
             </Link>
           )}
@@ -88,7 +104,7 @@ export default function Navbar() {
             border: "none",
             cursor: "pointer",
             padding: "4px",
-            color: "#374151",
+            color: "#222222",
           }}
         >
           <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -104,7 +120,7 @@ export default function Navbar() {
       {/* Mobile menu */}
       {menuOpen && (
         <div style={{
-          borderTop: "1px solid #E5E7EB",
+          borderTop: "1px solid #DDDDDD",
           padding: "12px 24px 16px",
           display: "flex",
           flexDirection: "column",
@@ -122,16 +138,16 @@ export default function Navbar() {
               onClick={() => setMenuOpen(false)}
               style={{
                 padding: "10px 12px",
-                borderRadius: "6px",
-                fontSize: "14px",
-                color: "#374151",
+                borderRadius: "8px",
+                fontSize: "15px",
+                color: "#222222",
                 fontWeight: 500,
               }}
             >
               {item.label}
             </Link>
           ))}
-          <div style={{ borderTop: "1px solid #E5E7EB", marginTop: "8px", paddingTop: "12px" }}>
+          <div style={{ borderTop: "1px solid #DDDDDD", marginTop: "8px", paddingTop: "12px" }}>
             {session ? (
               <button
                 onClick={() => { setMenuOpen(false); signOut({ callbackUrl: "/" }); }}
@@ -139,9 +155,9 @@ export default function Navbar() {
                   width: "100%",
                   textAlign: "left",
                   padding: "10px 12px",
-                  borderRadius: "6px",
-                  fontSize: "14px",
-                  color: "#374151",
+                  borderRadius: "8px",
+                  fontSize: "15px",
+                  color: "#222222",
                   background: "none",
                   border: "none",
                   cursor: "pointer",
@@ -156,11 +172,11 @@ export default function Navbar() {
                 style={{
                   display: "block",
                   textAlign: "center",
-                  padding: "10px",
-                  background: "#006AFF",
+                  padding: "12px",
+                  background: "#FF385C",
                   color: "#fff",
-                  borderRadius: "6px",
-                  fontSize: "14px",
+                  borderRadius: "12px",
+                  fontSize: "15px",
                   fontWeight: 600,
                 }}
               >
@@ -189,11 +205,12 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
       style={{
         fontSize: "14px",
         fontWeight: 500,
-        color: "#374151",
+        color: "#222222",
         textDecoration: "none",
+        transition: "color 0.2s ease",
       }}
-      onMouseEnter={(e) => (e.currentTarget.style.color = "#006AFF")}
-      onMouseLeave={(e) => (e.currentTarget.style.color = "#374151")}
+      onMouseEnter={(e) => (e.currentTarget.style.color = "#FF385C")}
+      onMouseLeave={(e) => (e.currentTarget.style.color = "#222222")}
     >
       {children}
     </Link>

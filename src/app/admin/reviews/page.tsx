@@ -100,10 +100,10 @@ export default function AdminReviewsPage() {
               disabled={loading}
               style={{
                 padding: "10px 20px",
-                background: "#006AFF",
+                background: "#FF385C",
                 color: "#fff",
                 border: "none",
-                borderRadius: "8px",
+                borderRadius: "12px",
                 fontWeight: 600,
                 cursor: loading ? "not-allowed" : "pointer",
               }}
@@ -128,7 +128,7 @@ export default function AdminReviewsPage() {
                 }}
               >
                 <p style={{ fontSize: "12px", color: "#9CA3AF", marginBottom: "4px" }}>
-                  <a href={`/colleges/${r.college.slug}`} style={{ color: "#006AFF" }}>
+                  <a href={`/colleges/${r.college.slug}`} style={{ color: "#FF385C" }}>
                     {r.college.name}
                   </a>
                   {" · "}
