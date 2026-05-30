@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Toast from "@/components/Toast";
@@ -27,6 +28,7 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 export default function ShortlistPage() {
+  const router = useRouter();
   const { data: session, status } = useSession();
   const [colleges, setColleges] = useState<ShortlistCollege[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,12 +50,14 @@ export default function ShortlistPage() {
   }, [session]);
 
   useEffect(() => {
+    if (status === "unauthenticated") {
+      router.replace("/login?callbackUrl=%2Fshortlist");
+      return;
+    }
     if (status === "authenticated") {
       fetchShortlist();
-    } else if (status === "unauthenticated") {
-      setLoading(false);
     }
-  }, [status, fetchShortlist]);
+  }, [status, fetchShortlist, router]);
 
   async function remove(collegeId: string) {
     try {
@@ -67,6 +71,10 @@ export default function ShortlistPage() {
     } catch {
       setToast({ message: "Failed to remove", type: "error" });
     }
+  }
+
+  if (status === "unauthenticated") {
+    return null;
   }
 
   // Auth loading

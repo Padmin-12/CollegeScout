@@ -5,9 +5,9 @@ export const proxy = auth((req) => {
   const { pathname } = req.nextUrl;
 
   // Protect /shortlist — must be logged in
-  if (pathname.startsWith("/shortlist")) {
+  if (pathname === "/shortlist" || pathname.startsWith("/shortlist/")) {
     if (!req.auth) {
-      const loginUrl = new URL("/login", req.url);
+      const loginUrl = new URL("/login", req.nextUrl.origin);
       loginUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(loginUrl);
     }
@@ -17,5 +17,5 @@ export const proxy = auth((req) => {
 });
 
 export const config = {
-  matcher: ["/shortlist/:path*"],
+  matcher: ["/shortlist", "/shortlist/:path*"],
 };
