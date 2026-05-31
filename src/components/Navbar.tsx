@@ -1,11 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useSession, signOut } from "next-auth/react";
 import { useState } from "react";
 
 export default function Navbar() {
-  const { data: session } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -42,55 +40,7 @@ export default function Navbar() {
           <NavLink href="/predictor">Predictor</NavLink>
           <NavLink href="/shortlist">★ Shortlist</NavLink>
 
-          {session ? (
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <span style={{ fontSize: "13px", color: "#717171" }}>
-                {session.user?.name ?? session.user?.email}
-              </span>
-              <button
-                onClick={() => signOut({ callbackUrl: "/" })}
-                style={{
-                  padding: "7px 16px",
-                  border: "1.5px solid #DDDDDD",
-                  borderRadius: "12px",
-                  fontSize: "13px",
-                  fontWeight: 500,
-                  color: "#222222",
-                  background: "#fff",
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "#222222";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "#DDDDDD";
-                }}
-              >
-                Sign Out
-              </button>
-            </div>
-          ) : (
-            <Link href="/login" style={{
-              padding: "9px 20px",
-              background: "#FF385C",
-              color: "#fff",
-              borderRadius: "12px",
-              fontSize: "13px",
-              fontWeight: 600,
-              transition: "all 0.2s ease",
-              display: "inline-block",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.background = "#E31C5F";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.background = "#FF385C";
-            }}
-            >
-              Sign In
-            </Link>
-          )}
+
         </div>
 
         {/* Mobile hamburger */}
@@ -147,43 +97,7 @@ export default function Navbar() {
               {item.label}
             </Link>
           ))}
-          <div style={{ borderTop: "1px solid #DDDDDD", marginTop: "8px", paddingTop: "12px" }}>
-            {session ? (
-              <button
-                onClick={() => { setMenuOpen(false); signOut({ callbackUrl: "/" }); }}
-                style={{
-                  width: "100%",
-                  textAlign: "left",
-                  padding: "10px 12px",
-                  borderRadius: "8px",
-                  fontSize: "15px",
-                  color: "#222222",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                Sign Out
-              </button>
-            ) : (
-              <Link
-                href="/login"
-                onClick={() => setMenuOpen(false)}
-                style={{
-                  display: "block",
-                  textAlign: "center",
-                  padding: "12px",
-                  background: "#FF385C",
-                  color: "#fff",
-                  borderRadius: "12px",
-                  fontSize: "15px",
-                  fontWeight: 600,
-                }}
-              >
-                Sign In
-              </Link>
-            )}
-          </div>
+
         </div>
       )}
 

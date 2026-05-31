@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Toast from "@/components/Toast";
+import {
+  getGuestShortlist,
+  removeFromGuestShortlist,
+  dispatchShortlistChange,
+} from "@/lib/guestShortlist";
 
 type ShortlistCollege = {
   id: string;
@@ -28,57 +31,58 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 export default function ShortlistPage() {
-  const router = useRouter();
-  const { data: session, status } = useSession();
   const [colleges, setColleges] = useState<ShortlistCollege[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const fetchShortlist = useCallback(async () => {
-    if (!session) return;
     setLoading(true);
     try {
-      const res = await fetch("/api/shortlist/colleges");
-      if (!res.ok) throw new Error("Failed");
-      const data = await res.json() as { colleges: ShortlistCollege[] };
-      setColleges(data.colleges ?? []);
+      // Get IDs from localStorage
+      const ids = getGuestShortlist().map((e) => e.collegeId);
+      if (ids.length === 0) {
+        setColleges([]);
+        setLoading(false);
+        return;
+      }
+      // Fetch full details from public colleges API
+      const params = new URLSearchParams({ ids: ids.join(","), limit: "100" });
+      const res = await fetch(`/api/colleges?${params.toString()}`);
+      if (res.ok) {
+        const data = await res.json() as { colleges?: ShortlistCollege[] };
+        setColleges(data.colleges ?? []);
+      } else {
+        // Fallback: fetch each college individually
+        const results: ShortlistCollege[] = [];
+        for (const id of ids) {
+          const r = await fetch(`/api/colleges/${id}`);
+          if (r.ok) results.push(await r.json() as ShortlistCollege);
+        }
+        setColleges(results);
+      }
     } catch {
       setToast({ message: "Could not load shortlist", type: "error" });
     } finally {
       setLoading(false);
     }
-  }, [session]);
+  }, []);
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.replace("/login?callbackUrl=%2Fshortlist");
-      return;
-    }
-    if (status === "authenticated") {
-      fetchShortlist();
-    }
-  }, [status, fetchShortlist, router]);
+    fetchShortlist();
+    // Re-fetch when shortlist changes
+    window.addEventListener("guest-shortlist-change", fetchShortlist);
+    return () => window.removeEventListener("guest-shortlist-change", fetchShortlist);
+  }, [fetchShortlist]);
 
-  async function remove(collegeId: string) {
-    try {
-      await fetch("/api/shortlist", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ collegeId }),
-      });
-      setColleges((prev) => prev.filter((c) => c.id !== collegeId));
-      setToast({ message: "Removed from shortlist", type: "success" });
-    } catch {
-      setToast({ message: "Failed to remove", type: "error" });
-    }
+  function remove(collegeId: string) {
+    removeFromGuestShortlist(collegeId);
+    setColleges((prev) => prev.filter((c) => c.id !== collegeId));
+    dispatchShortlistChange();
+    setToast({ message: "Removed from shortlist", type: "success" });
   }
 
-  if (status === "unauthenticated") {
-    return null;
-  }
-
-  // Auth loading
-  if (status === "loading" || (status === "authenticated" && loading)) {
+  // Loading
+  if (loading) {
     return (
       <>
         <Navbar />

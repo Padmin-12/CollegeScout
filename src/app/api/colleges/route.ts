@@ -6,6 +6,48 @@ export async function GET(req: NextRequest) {
   try {
     const sp = req.nextUrl.searchParams;
 
+    // Batch fetch by IDs (used by guest shortlist)
+    const idsParam = sp.get("ids");
+    if (idsParam) {
+      const ids = idsParam.split(",").filter(Boolean);
+      const colleges = await prisma.college.findMany({
+        where: { id: { in: ids } },
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          city: true,
+          state: true,
+          type: true,
+          nirfRank: true,
+          courseFees: { select: { annualFee: true } },
+          placementStats: {
+            orderBy: { year: "desc" },
+            take: 1,
+            select: { avgPackage: true, maxPackage: true, placementPct: true },
+          },
+        },
+      });
+      const mapped = colleges.map((c) => ({
+        id: c.id,
+        slug: c.slug,
+        name: c.name,
+        city: c.city,
+        state: c.state,
+        type: c.type,
+        nirfRank: c.nirfRank,
+        avgPackage: c.placementStats[0]?.avgPackage ?? null,
+        maxPackage: c.placementStats[0]?.maxPackage ?? null,
+        placementPct: c.placementStats[0]?.placementPct ?? null,
+        minFee: c.courseFees.length > 0
+          ? Math.min(...c.courseFees.map((f) => f.annualFee))
+          : null,
+      }));
+      // Preserve the order from localStorage
+      const ordered = ids.map((id) => mapped.find((c) => c.id === id)).filter(Boolean);
+      return NextResponse.json({ colleges: ordered });
+    }
+
     const search  = sp.get("search")  ?? "";
     const stream  = sp.get("stream")  ?? "";
     const city    = sp.get("city")    ?? "";

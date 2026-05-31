@@ -1,12 +1,16 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useSession } from "next-auth/react";
 import Navbar from "@/components/Navbar";
 import CollegeCard from "@/components/CollegeCard";
 import SkeletonCard from "@/components/SkeletonCard";
 import Toast from "@/components/Toast";
-import AuthModal from "@/components/AuthModal";
+import {
+  getGuestShortlist,
+  addToGuestShortlist,
+  removeFromGuestShortlist,
+  dispatchShortlistChange,
+} from "@/lib/guestShortlist";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -52,7 +56,6 @@ const LIMIT = 9;
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function Home() {
-  const { data: session, status } = useSession();
   const [colleges,    setColleges]    = useState<College[]>([]);
   const [total,       setTotal]       = useState(0);
   const [totalPages,  setTotalPages]  = useState(1);
@@ -61,7 +64,6 @@ export default function Home() {
   const [error,       setError]       = useState("");
   const [savedIds,    setSavedIds]    = useState<Set<string>>(new Set());
   const [toast,       setToast]       = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
-  const [showAuthModal, setShowAuthModal] = useState(false);
 
   // Filters
   const [search,     setSearch]      = useState("");
@@ -118,55 +120,28 @@ export default function Home() {
 
   useEffect(() => { fetchColleges(); }, [fetchColleges]);
 
-  // Load shortlisted colleges when logged in
+  // Load shortlisted colleges from localStorage
   useEffect(() => {
-    if (status === "loading") return;
-    if (!session) {
-      setSavedIds(new Set());
-      return;
-    }
+    const sync = () => {
+      const list = getGuestShortlist();
+      setSavedIds(new Set(list.map((e) => e.collegeId)));
+    };
+    sync();
+    window.addEventListener("guest-shortlist-change", sync);
+    return () => window.removeEventListener("guest-shortlist-change", sync);
+  }, []);
 
-    fetch("/api/shortlist")
-      .then((r) => {
-        if (!r.ok) throw new Error("Failed to fetch");
-        return r.json();
-      })
-      .then((data: Array<{ collegeId: string }>) => {
-        if (Array.isArray(data)) setSavedIds(new Set(data.map((c) => c.collegeId)));
-      })
-      .catch(() => {});
-  }, [session, status]);
-
-  async function handleSaveToggle(collegeId: string, save: boolean) {
-    if (!session) {
-      setShowAuthModal(true);
-      return;
+  function handleSaveToggle(collegeId: string, save: boolean) {
+    if (save) {
+      addToGuestShortlist(collegeId);
+      setSavedIds((prev) => new Set([...prev, collegeId]));
+      setToast({ message: "Added to shortlist ★", type: "success" });
+    } else {
+      removeFromGuestShortlist(collegeId);
+      setSavedIds((prev) => { const n = new Set(prev); n.delete(collegeId); return n; });
+      setToast({ message: "Removed from shortlist", type: "info" });
     }
-
-    try {
-      if (save) {
-        const res = await fetch("/api/shortlist", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ collegeId }),
-        });
-        if (!res.ok) throw new Error("Failed to save");
-        setSavedIds((prev) => new Set([...prev, collegeId]));
-        setToast({ message: "Added to shortlist ★", type: "success" });
-      } else {
-        const res = await fetch("/api/shortlist", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ collegeId }),
-        });
-        if (!res.ok) throw new Error("Failed to remove");
-        setSavedIds((prev) => { const n = new Set(prev); n.delete(collegeId); return n; });
-        setToast({ message: "Removed from shortlist", type: "info" });
-      }
-    } catch (error) {
-      console.error("Shortlist error:", error);
-      setToast({ message: "Failed to update shortlist", type: "error" });
-    }
+    dispatchShortlistChange();
   }
 
   function clearFilters() {
@@ -368,7 +343,6 @@ export default function Home() {
         )}
       </section>
 
-      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
 
       {toast && (
         <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
