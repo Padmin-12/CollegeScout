@@ -30,7 +30,7 @@ export default function Navbar() {
           color: "#FF385C",
           letterSpacing: "-0.03em",
         }}>
-          CollegeHunt
+          CollegeScout
         </Link>
 
         {/* Desktop nav */}
