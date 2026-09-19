@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import Navbar from "@/components/Navbar";
 import CollegeCard from "@/components/CollegeCard";
 import SkeletonCard from "@/components/SkeletonCard";
@@ -89,10 +89,19 @@ export default function Home() {
     return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
   }, [search]);
 
+  const [reloadKey, setReloadKey] = useState(0);
+
   // Fetch colleges
-  const fetchColleges = useCallback(async () => {
-    setLoading(true);
-    setError("");
+  useEffect(() => {
+    let active = true;
+
+    Promise.resolve().then(() => {
+      if (active) {
+        setLoading(true);
+        setError("");
+      }
+    });
+
     const p = new URLSearchParams({
       page:  String(page),
       limit: String(LIMIT),
@@ -104,21 +113,27 @@ export default function Home() {
     if (typeFilter)      p.set("type",     typeFilter);
     if (feesMax)         p.set("fees_max", feesMax);
 
-    try {
-      const res  = await fetch(`/api/colleges?${p.toString()}`);
-      if (!res.ok) throw new Error("Failed to fetch");
-      const data: ApiResponse = await res.json();
-      setColleges(data.data);
-      setTotal(data.total);
-      setTotalPages(data.totalPages);
-    } catch {
-      setError("Failed to load colleges. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  }, [page, debouncedSearch, stream, cityFilter, typeFilter, feesMax, sort]);
+    fetch(`/api/colleges?${p.toString()}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Failed to fetch");
+        const data: ApiResponse = await res.json();
+        if (active) {
+          setColleges(data.data);
+          setTotal(data.total);
+          setTotalPages(data.totalPages);
+        }
+      })
+      .catch(() => {
+        if (active) setError("Failed to load colleges. Please try again.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
 
-  useEffect(() => { fetchColleges(); }, [fetchColleges]);
+    return () => {
+      active = false;
+    };
+  }, [page, debouncedSearch, stream, cityFilter, typeFilter, feesMax, sort, reloadKey]);
 
   // Load shortlisted colleges from localStorage
   useEffect(() => {
@@ -278,7 +293,7 @@ export default function Home() {
         {error && (
           <div className="error-banner">
             {error}{" "}
-            <button onClick={fetchColleges} className="error-retry">Retry</button>
+            <button onClick={() => setReloadKey((k) => k + 1)} className="error-retry">Retry</button>
           </div>
         )}
 

@@ -2,7 +2,8 @@
 
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 
 type Feature = "Compare" | "Predictor" | "Shortlist";
 
@@ -10,10 +11,10 @@ const FEATURE_INFO: Record<Feature, { icon: string; title: string; desc: string;
   Compare: {
     icon: "⚖️",
     title: "Compare Colleges Side-by-Side",
-    desc: "See which college wins across placement, fees, location and more — with live weighted scoring.",
+    desc: "See which college wins across placement, fees, ranking and more — with live weighted scoring.",
     bullets: [
       "Visual winner highlights per metric",
-      "Adjust weights: Placement vs Fees vs Location",
+      "Adjust weights: Placement vs Fees vs Ranking",
       "Best Match badge that updates live",
       "Highlight only the rows that differ",
     ],
@@ -21,12 +22,12 @@ const FEATURE_INFO: Record<Feature, { icon: string; title: string; desc: string;
   Predictor: {
     icon: "🎯",
     title: "Personalised Admission Predictor",
-    desc: "Enter your JEE / MHT-CET / KCET score and see your realistic chances at every college.",
+    desc: "Enter your entrance exam rank or score to see your realistic admission chances at every college.",
     bullets: [
-      "Based on 3 years of real cutoff data",
-      "High / Medium / Low probability bands",
-      "Covers 7+ entrance exams",
-      "Grouped by chance — not just a list",
+      "Based on available historical cutoff data",
+      "High / Medium / Low Likelihood bands",
+      "Covers JEE, BITSAT, VITEEE, MHT-CET and more",
+      "Grouped by likelihood — not just a list",
     ],
   },
   Shortlist: {
@@ -57,14 +58,26 @@ function Skeleton() {
 
 export default function AuthGate({ feature, children }: { feature: Feature; children: React.ReactNode }) {
   const { status } = useSession();
+  const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const info = FEATURE_INFO[feature];
 
-  if (status === "loading") return <Skeleton />;
+  const queryString = searchParams?.toString();
+  const fullCallbackUrl = queryString ? `${pathname}?${queryString}` : pathname;
+  const loginUrl = `/login?callbackUrl=${encodeURIComponent(fullCallbackUrl)}&feature=${feature}`;
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push(loginUrl);
+    }
+  }, [status, loginUrl, router]);
+
+  if (status === "loading" || status === "unauthenticated") return <Skeleton />;
 
   if (status === "authenticated") return <>{children}</>;
 
-  // Auth wall
+  // Auth wall fallback
   return (
     <div style={{
       minHeight: "80vh",
@@ -119,7 +132,7 @@ export default function AuthGate({ feature, children }: { feature: Feature; chil
 
         {/* CTA */}
         <Link
-          href={`/login?callbackUrl=${encodeURIComponent(pathname)}`}
+          href={loginUrl}
           style={{
             display: "block",
             width: "100%",
@@ -140,7 +153,7 @@ export default function AuthGate({ feature, children }: { feature: Feature; chil
         </Link>
 
         <Link
-          href="/login?tab=register"
+          href={`/login?tab=register&callbackUrl=${encodeURIComponent(fullCallbackUrl)}&feature=${feature}`}
           style={{ fontSize: "13px", color: "#717171", textDecoration: "underline" }}
         >
           New here? Create a free account

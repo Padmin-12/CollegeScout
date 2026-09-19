@@ -1,6 +1,23 @@
-import { summarizeCutoffs, cutoffValueLabel, type CutoffRow, type CutoffSummary } from "@/lib/cutoffs";
+import {
+  summarizeCutoffs,
+  cutoffValueLabel,
+  isScoreBasedExam,
+  isPercentileExam,
+  type CutoffRow,
+  type CutoffSummary,
+} from "@/lib/cutoffs";
 
 type Props = { cutoffs: CutoffRow[] };
+
+function getExplanatoryText(exam: string): string {
+  if (isPercentileExam(exam)) {
+    return "Closing percentile is the recorded cutoff percentile. A higher percentile generally indicates a stronger position.";
+  }
+  if (isScoreBasedExam(exam)) {
+    return "Closing score is the score at which the cutoff was recorded for the available branches. A higher score generally indicates a stronger position.";
+  }
+  return "Closing rank is the highest rank at which someone got a seat in any available branch. A better rank (lower number) generally indicates a stronger position.";
+}
 
 export default function CutoffsSection({ cutoffs }: Props) {
   const summaries = summarizeCutoffs(cutoffs);
@@ -25,14 +42,17 @@ export default function CutoffsSection({ cutoffs }: Props) {
   }
 
   const headline = [...byExam.values()].sort((a: CutoffSummary, b: CutoffSummary) => a.exam.localeCompare(b.exam));
+  const distinctExams = Array.from(new Set(headline.map((s) => s.exam)));
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      <p style={{ fontSize: "14px", color: "#6B7280", lineHeight: 1.6 }}>
-        <strong>Last closing rank</strong> is the highest rank/score at which someone got a seat in{" "}
-        <em>any</em> branch — if your rank is better (lower) than this number, you have a shot at
-        entering the college.
-      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        {distinctExams.map((examName) => (
+          <p key={examName} style={{ fontSize: "14px", color: "#6B7280", lineHeight: 1.6, margin: 0 }}>
+            <strong style={{ color: "#374151" }}>{examName}:</strong> {getExplanatoryText(examName)}
+          </p>
+        ))}
+      </div>
 
       {headline.map((s) => (
         <div

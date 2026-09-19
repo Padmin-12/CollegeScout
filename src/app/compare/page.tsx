@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import AuthGate from "@/components/AuthGate";
+import { scoreColleges } from "@/lib/scoring";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -91,28 +93,34 @@ function Slider({
 
 function CompareContent() {
   const searchParams = useSearchParams();
-  const preloadSlug  = searchParams.get("ids")?.split(",")[0] ?? "";
+  const idsParam = searchParams.get("ids") ?? "";
+  const initialSlugs = useMemo(
+    () =>
+      idsParam
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+    [idsParam]
+  );
 
   const [allColleges, setAllColleges] = useState<CollegeOption[]>([]);
-  const [slug1,       setSlug1]       = useState(preloadSlug);
-  const [slug2,       setSlug2]       = useState("");
-  const [slug3,       setSlug3]       = useState("");
+  const [slug1,       setSlug1]       = useState(initialSlugs[0] ?? "");
+  const [slug2,       setSlug2]       = useState(initialSlugs[1] ?? "");
+  const [slug3,       setSlug3]       = useState(initialSlugs[2] ?? "");
   const [compared,    setCompared]    = useState<ComparedCollege[]>([]);
   const [loading,     setLoading]     = useState(false);
   const [fetching,    setFetching]    = useState(true);
   const [error,       setError]       = useState("");
 
-  // Weight sliders
+  // Weight sliders (default: Placement 60%, Fees 30%, Ranking 10%)
   const [wPlacement, setWPlacement] = useState(0.6);
   const [wFees,      setWFees]      = useState(0.3);
-  const [wLocation,  setWLocation]  = useState(0.1);
+  const [wRanking,   setWRanking]   = useState(0.1);
 
   // Normalise weights so they always sum to 1
-  const total      = wPlacement + wFees + wLocation || 1;
-  const weights    = { placement: wPlacement / total, fees: wFees / total, location: wLocation / total };
+  const total      = wPlacement + wFees + wRanking || 1;
+  const weights    = { placement: wPlacement / total, fees: wFees / total, ranking: wRanking / total };
 
-  // Scores (0–100)
-  const [scores, setScores] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetch("/api/colleges?limit=50")
@@ -121,8 +129,8 @@ function CompareContent() {
       .catch(() => setFetching(false));
   }, []);
 
-  async function handleCompare() {
-    const slugs = [slug1, slug2, slug3].filter(Boolean);
+  async function executeComparison(slugsToCompare: string[]) {
+    const slugs = slugsToCompare.filter(Boolean);
     if (slugs.length < 2) return;
     setLoading(true);
     setError("");
@@ -134,6 +142,9 @@ function CompareContent() {
         setCompared([]);
       } else {
         setCompared(data.colleges);
+        if (data.colleges[0]) setSlug1(data.colleges[0].slug);
+        if (data.colleges[1]) setSlug2(data.colleges[1].slug);
+        if (data.colleges[2]) setSlug3(data.colleges[2].slug);
       }
     } catch {
       setError("Network error. Please try again.");
@@ -142,31 +153,47 @@ function CompareContent() {
     }
   }
 
-  // Re-score whenever weights or colleges change
+  // Preload comparison if 2 or 3 IDs exist in URL
   useEffect(() => {
-    if (compared.length === 0) return;
+    if (initialSlugs.length >= 2) {
+      const slugsToRun = initialSlugs.slice(0, 3);
+      Promise.resolve().then(() => {
+        executeComparison(slugsToRun);
+      });
+    }
+  }, [idsParam, initialSlugs]);
 
-    const pkgs   = compared.map((c) => c.placement?.avgPackage ?? 0);
-    const fees   = compared.map((c) => c.minAnnualFee ?? 0);
-    const ranks  = compared.map((c) => c.nirfRank ?? 999);
+  async function handleCompare() {
+    executeComparison([slug1, slug2, slug3]);
+  }
 
-    const minPkg = Math.min(...pkgs), maxPkg = Math.max(...pkgs);
-    const minFee = Math.min(...fees), maxFee = Math.max(...fees);
-    const minRnk = Math.min(...ranks), maxRnk = Math.max(...ranks);
+  // Derive scores whenever weights or colleges change using the shared scoring engine
+  const scores = useMemo(() => {
+    if (compared.length === 0) return {};
 
-    const norm = (v: number, lo: number, hi: number) =>
-      hi === lo ? 0.5 : (v - lo) / (hi - lo);
+    const scoringInputs = compared.map((c) => ({
+      id: c.id,
+      slug: c.slug,
+      name: c.name,
+      city: c.city,
+      state: c.state,
+      nirfRank: c.nirfRank,
+      avgPackage: c.placement?.avgPackage ?? null,
+      minFee: c.minAnnualFee ?? null,
+    }));
 
-    const tier1Cities = ["mumbai", "bangalore", "delhi", "hyderabad", "pune"];
-const newScores: Record<string, number> = {};
-for (const c of compared) {
-  const p = norm(c.placement?.avgPackage ?? 0, minPkg, maxPkg);
-  const f = 1 - norm(c.minAnnualFee ?? 0, minFee, maxFee);
-  const l = tier1Cities.some((city) => c.city.toLowerCase().includes(city)) ? 1 : 0.5;
-  newScores[c.id] = Math.round((weights.placement * p + weights.fees * f + weights.location * l) * 1000) / 10;
-}
-    setScores(newScores);
-  }, [compared, weights.placement, weights.fees, weights.location]);
+    const scored = scoreColleges(scoringInputs, {
+      placement: weights.placement,
+      fees: weights.fees,
+      ranking: weights.ranking,
+    });
+
+    const newScores: Record<string, number> = {};
+    for (const item of scored) {
+      newScores[item.id] = item.score;
+    }
+    return newScores;
+  }, [compared, weights.placement, weights.fees, weights.ranking]);
 
   const ranked = [...compared].sort((a, b) => (scores[b.id] ?? 0) - (scores[a.id] ?? 0));
   const best   = (key: "avgPackage" | "minAnnualFee" | "nirfRank", mode: "higher" | "lower") => {
@@ -274,9 +301,11 @@ for (const c of compared) {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px" }}>
                 <Slider label="Placement Package" value={wPlacement} onChange={setWPlacement} color="#FF385C" />
                 <Slider label="Affordability (fees)" value={wFees} onChange={setWFees} color="#16A34A" />
-                <Slider label="Location Preference" value={wLocation} onChange={setWLocation} color="#D97706" />              </div>
+                <Slider label="Ranking Preference" value={wRanking} onChange={setWRanking} color="#D97706" />
+              </div>
               <p style={{ fontSize: "12px", color: "#9CA3AF", marginTop: "12px" }}>
-              Weights auto-normalise to 100% · {Math.round(weights.placement * 100)}% placement + {Math.round(weights.fees * 100)}% fees + {Math.round(weights.location * 100)}% location              </p>
+                Weights auto-normalise to 100% · {Math.round(weights.placement * 100)}% placement + {Math.round(weights.fees * 100)}% fees + {Math.round(weights.ranking * 100)}% ranking
+              </p>
             </div>
           )}
 
@@ -483,12 +512,14 @@ for (const c of compared) {
 
 export default function ComparePage() {
   return (
-    <Suspense fallback={
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "#9CA3AF" }}>
-        Loading…
-      </div>
-    }>
-      <CompareContent />
-    </Suspense>
+    <AuthGate feature="Compare">
+      <Suspense fallback={
+        <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "#9CA3AF" }}>
+          Loading…
+        </div>
+      }>
+        <CompareContent />
+      </Suspense>
+    </AuthGate>
   );
 }

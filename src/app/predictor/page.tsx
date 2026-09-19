@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Link from "next/link";
+import AuthGate from "@/components/AuthGate";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -29,11 +30,13 @@ type PredictorResponse = {
 // ── Config ─────────────────────────────────────────────────────────────────
 
 const EXAMS = [
-  { label: "JEE Advanced",  value: "JEE Advanced",  type: "rank",  placeholder: "e.g. 500 (rank)" },
+  { label: "JEE Advanced",  value: "JEE Advanced",  type: "rank",  placeholder: "e.g. 1500 (rank)" },
   { label: "JEE Main",      value: "JEE Main",      type: "rank",  placeholder: "e.g. 5000 (rank)" },
-  { label: "MHT-CET",       value: "MHT-CET",       type: "pct",   placeholder: "e.g. 99.2 (percentile)" },
-  { label: "BITSAT",        value: "BITSAT",         type: "score", placeholder: "e.g. 350 (score)" },
-  { label: "VITEEE",        value: "VITEEE",         type: "rank",  placeholder: "e.g. 1000 (rank)" },
+  { label: "MHT-CET",       value: "MHT-CET",       type: "pct",   placeholder: "e.g. 98.5 (percentile)" },
+  { label: "BITSAT",        value: "BITSAT",         type: "score", placeholder: "e.g. 320 (score)" },
+  { label: "VITEEE",        value: "VITEEE",         type: "score", placeholder: "e.g. 95 (score)" },
+  { label: "MET",           value: "MET",            type: "score", placeholder: "e.g. 140 (score)" },
+  { label: "SRMJEEE",       value: "SRMJEEE",        type: "score", placeholder: "e.g. 110 (score)" },
   { label: "KCET",          value: "KCET",           type: "rank",  placeholder: "e.g. 2000 (rank)" },
   { label: "WBJEE",         value: "WBJEE",          type: "rank",  placeholder: "e.g. 3000 (rank)" },
 ];
@@ -41,9 +44,9 @@ const EXAMS = [
 const CATEGORIES = ["General", "OBC", "SC", "ST", "EWS"];
 
 const PROB_STYLES: Record<string, { bg: string; color: string; border: string; label: string }> = {
-  high:   { bg: "#F0FDF4", color: "#16A34A", border: "#BBF7D0", label: "✅ High" },
-  medium: { bg: "#FFFBEB", color: "#D97706", border: "#FDE68A", label: "⚡ Medium" },
-  low:    { bg: "#FEF2F2", color: "#DC2626", border: "#FECACA", label: "🎯 Low" },
+  high:   { bg: "#F0FDF4", color: "#16A34A", border: "#BBF7D0", label: "✅ High Likelihood" },
+  medium: { bg: "#FFFBEB", color: "#D97706", border: "#FDE68A", label: "⚡ Medium Likelihood" },
+  low:    { bg: "#FEF2F2", color: "#DC2626", border: "#FECACA", label: "🎯 Low Likelihood" },
 };
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -60,9 +63,24 @@ export default function PredictorPage() {
   const selectedExam = EXAMS.find((e) => e.value === exam) ?? EXAMS[0];
 
   async function handlePredict() {
-    if (!percentile || !exam) return;
-    setLoading(true);
     setError("");
+    if (!percentile.trim() || !exam) {
+      setError("Please enter your rank, score, or percentile.");
+      return;
+    }
+
+    const val = parseFloat(percentile);
+    if (isNaN(val) || !isFinite(val) || val <= 0) {
+      setError(`Please enter a valid positive ${selectedExam.type === "rank" ? "rank" : selectedExam.type === "score" ? "score" : "percentile"}.`);
+      return;
+    }
+
+    if (selectedExam.type === "pct" && val > 100) {
+      setError("Percentile cannot exceed 100. Please enter a valid percentile between 0 and 100.");
+      return;
+    }
+
+    setLoading(true);
     setResults([]);
     setSearched(false);
 
@@ -89,7 +107,7 @@ export default function PredictorPage() {
   const low     = results.filter((r) => r.probability === "low");
 
   return (
-    <>
+    <AuthGate feature="Predictor">
       <Navbar />
       <main style={{ minHeight: "100vh", background: "#fff" }}>
         <div style={{ maxWidth: "900px", margin: "0 auto", padding: "40px 24px 80px" }}>
@@ -100,7 +118,7 @@ export default function PredictorPage() {
               Admission Predictor
             </h1>
             <p style={{ color: "#6B7280", fontSize: "14px", marginTop: "6px" }}>
-              Enter your exam score to see which colleges are safe, moderate, or reach for you.
+              Enter your exam rank or score to see colleges where your cutoff position is more, moderately, or less favorable.
             </p>
           </div>
 
@@ -203,9 +221,9 @@ export default function PredictorPage() {
               {/* Summary pills */}
               <div style={{ display: "flex", gap: "12px", marginBottom: "24px", flexWrap: "wrap" }}>
                 {[
-                  { label: "✅ High",   count: high.length,   color: "#16A34A" },
-                  { label: "⚡ Medium", count: medium.length, color: "#D97706" },
-                  { label: "🎯 Low",    count: low.length,    color: "#DC2626" },
+                  { label: "✅ High Likelihood",   count: high.length,   color: "#16A34A" },
+                  { label: "⚡ Medium Likelihood", count: medium.length, color: "#D97706" },
+                  { label: "🎯 Low Likelihood",    count: low.length,    color: "#DC2626" },
                 ].map(({ label, count, color }) => (
                   <div key={label} style={{
                     padding: "8px 16px", borderRadius: "20px",
@@ -219,9 +237,9 @@ export default function PredictorPage() {
 
               {/* Groups */}
               {[
-                { title: "High Probability",   data: high,   prob: "high"   as const },
-                { title: "Medium Probability",  data: medium, prob: "medium" as const },
-                { title: "Low Probability",     data: low,    prob: "low"    as const },
+                { title: "High Likelihood",   data: high,   prob: "high"   as const },
+                { title: "Medium Likelihood", data: medium, prob: "medium" as const },
+                { title: "Low Likelihood",    data: low,    prob: "low"    as const },
               ].filter((g) => g.data.length > 0).map((group) => (
                 <div key={group.prob} style={{ marginBottom: "32px" }}>
                   <h2 style={{
@@ -232,11 +250,15 @@ export default function PredictorPage() {
                   </h2>
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                     {group.data.map((r) => (
-                      <CollegeResultCard key={r.collegeId} result={r} />
+                      <CollegeResultCard key={r.collegeId} result={r} examType={selectedExam.type} />
                     ))}
                   </div>
                 </div>
               ))}
+
+              <p style={{ fontSize: "12px", color: "#9CA3AF", textAlign: "center", marginTop: "24px" }}>
+                These bands are indicative and based on available cutoff data; they are not a guarantee of admission.
+              </p>
             </>
           )}
 
@@ -248,21 +270,28 @@ export default function PredictorPage() {
                 Enter your exam details above
               </p>
               <p style={{ fontSize: "14px", marginTop: "4px" }}>
-                We'll show you safe, moderate, and reach colleges based on 3 years of cutoff data
+                We&apos;ll show you safe, moderate, and reach colleges based on available historical cutoff data.
               </p>
             </div>
           )}
 
         </div>
       </main>
-    </>
+    </AuthGate>
   );
 }
 
 // ── College Result Card ─────────────────────────────────────────────────────
 
-function CollegeResultCard({ result }: { result: PredictorResult }) {
+function CollegeResultCard({ result, examType }: { result: PredictorResult; examType?: string }) {
   const style = PROB_STYLES[result.probability];
+  const metricLabel =
+    examType === "score"
+      ? "Last score to get in"
+      : examType === "pct"
+      ? "Last closing percentile"
+      : "Last closing rank";
+
   return (
     <div style={{
       display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -288,7 +317,7 @@ function CollegeResultCard({ result }: { result: PredictorResult }) {
         </div>
         <p style={{ fontSize: "12px", color: "#6B7280" }}>{result.city}</p>
         <p style={{ fontSize: "12px", color: "#6B7280", marginTop: "2px" }}>
-          Last closing rank ({result.cutoffYear}, any branch):{" "}
+          {metricLabel} ({result.cutoffYear}, any branch):{" "}
           <strong>{result.lastClosingRank.toLocaleString("en-IN")}</strong>
         </p>
       </div>

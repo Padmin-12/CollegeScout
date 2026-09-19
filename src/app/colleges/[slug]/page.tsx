@@ -61,7 +61,7 @@ export default async function CollegeDetailPage({ params }: Props) {
     <>
       <Navbar />
       <main style={{ minHeight: "100vh", background: "#fff" }}>
-        <div style={{ maxWidth: "960px", margin: "0 auto", padding: "32px 24px 80px" }}>
+        <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "32px 24px 80px" }}>
 
           {/* Breadcrumb */}
           <nav style={{ fontSize: "13px", color: "#9CA3AF", marginBottom: "20px" }}>

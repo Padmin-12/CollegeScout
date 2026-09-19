@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import {
-  getGuestShortlist,
   addToGuestShortlist,
   removeFromGuestShortlist,
   isInGuestShortlist,
@@ -15,29 +15,87 @@ type Props = {
 };
 
 export default function ShortlistButton({ collegeId, variant = "secondary" }: Props) {
+  const { status } = useSession();
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Sync from localStorage on mount and when other components change the list
+  // Sync state on mount, status change, or when other components change the list
   useEffect(() => {
-    setSaved(isInGuestShortlist(collegeId));
+    let isMounted = true;
 
-    const handler = () => setSaved(isInGuestShortlist(collegeId));
-    window.addEventListener("guest-shortlist-change", handler);
-    return () => window.removeEventListener("guest-shortlist-change", handler);
-  }, [collegeId]);
-
-  function toggle() {
-    setLoading(true);
-    if (saved) {
-      removeFromGuestShortlist(collegeId);
-      setSaved(false);
+    if (status === "authenticated") {
+      fetch("/api/shortlist")
+        .then((res) => (res.ok ? res.json() : []))
+        .then((list: { collegeId: string }[]) => {
+          if (isMounted && Array.isArray(list)) {
+            setSaved(list.some((item) => item.collegeId === collegeId));
+          }
+        })
+        .catch(() => {});
     } else {
-      addToGuestShortlist(collegeId);
-      setSaved(true);
+      Promise.resolve().then(() => {
+        if (isMounted) {
+          setSaved(isInGuestShortlist(collegeId));
+        }
+      });
     }
-    dispatchShortlistChange();
-    setLoading(false);
+
+    const handler = () => {
+      if (status === "authenticated") {
+        fetch("/api/shortlist")
+          .then((res) => (res.ok ? res.json() : []))
+          .then((list: { collegeId: string }[]) => {
+            if (isMounted && Array.isArray(list)) {
+              setSaved(list.some((item) => item.collegeId === collegeId));
+            }
+          })
+          .catch(() => {});
+      } else {
+        setSaved(isInGuestShortlist(collegeId));
+      }
+    };
+
+    window.addEventListener("guest-shortlist-change", handler);
+    return () => {
+      isMounted = false;
+      window.removeEventListener("guest-shortlist-change", handler);
+    };
+  }, [collegeId, status]);
+
+  async function toggle() {
+    setLoading(true);
+    try {
+      if (status === "authenticated") {
+        if (saved) {
+          await fetch("/api/shortlist", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ collegeId }),
+          });
+          setSaved(false);
+        } else {
+          await fetch("/api/shortlist", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ collegeId }),
+          });
+          setSaved(true);
+        }
+      } else {
+        if (saved) {
+          removeFromGuestShortlist(collegeId);
+          setSaved(false);
+        } else {
+          addToGuestShortlist(collegeId);
+          setSaved(true);
+        }
+      }
+      dispatchShortlistChange();
+    } catch (err) {
+      console.error("Failed to toggle shortlist", err);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const isPrimary = variant === "primary";

@@ -2,8 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
 function checkAdminKey(req: NextRequest): boolean {
-  const key = req.headers.get("x-admin-key") ?? req.nextUrl.searchParams.get("adminKey");
-  return key === process.env.ADMIN_API_KEY;
+  const key = req.headers.get("x-admin-key");
+  return Boolean(key && process.env.ADMIN_API_KEY && key === process.env.ADMIN_API_KEY);
 }
 
 // POST /api/admin/reviews/[id]/approve

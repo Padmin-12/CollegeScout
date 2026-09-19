@@ -76,8 +76,21 @@ export default function ReviewsSection({ collegeSlug, initialReviews }: Props) {
   }, [collegeSlug]);
 
   useEffect(() => {
-    fetchReviews(1, false);
-  }, [fetchReviews]);
+    let active = true;
+    fetch(`/api/colleges/${collegeSlug}/reviews?page=1&limit=10`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { data: Review[]; totalPages: number; aggregates: Aggregates | null } | null) => {
+        if (active && data) {
+          setAggregates(data.aggregates);
+          setTotalPages(data.totalPages);
+          setReviews(data.data);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [collegeSlug]);
 
   function setField(key: string, value: string | number) {
     setForm((prev) => ({ ...prev, [key]: value }));

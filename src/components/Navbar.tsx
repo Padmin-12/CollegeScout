@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useSession, signOut } from "next-auth/react";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { data: session } = useSession();
 
   return (
     <nav style={{
@@ -34,13 +36,72 @@ export default function Navbar() {
         </Link>
 
         {/* Desktop nav */}
-        <div style={{ display: "flex", alignItems: "center", gap: "32px" }} className="nav-desktop">
+        <div style={{ display: "flex", alignItems: "center", gap: "28px" }} className="nav-desktop">
           <NavLink href="/">Colleges</NavLink>
           <NavLink href="/compare">Compare</NavLink>
           <NavLink href="/predictor">Predictor</NavLink>
           <NavLink href="/shortlist">★ Shortlist</NavLink>
 
-
+          {session?.user ? (
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginLeft: "4px" }}>
+              <span
+                style={{
+                  fontSize: "13px",
+                  color: "#717171",
+                  maxWidth: "140px",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+                title={session.user.email ?? session.user.name ?? ""}
+              >
+                {session.user.name || session.user.email}
+              </span>
+              <button
+                type="button"
+                onClick={() => signOut({ callbackUrl: "/" })}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: "8px",
+                  border: "1px solid #DDDDDD",
+                  background: "#fff",
+                  color: "#222222",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#FF385C";
+                  e.currentTarget.style.color = "#FF385C";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#DDDDDD";
+                  e.currentTarget.style.color = "#222222";
+                }}
+              >
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              style={{
+                padding: "7px 16px",
+                borderRadius: "8px",
+                background: "#FF385C",
+                color: "#fff",
+                fontSize: "13px",
+                fontWeight: 600,
+                textDecoration: "none",
+                transition: "opacity 0.2s ease",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.9")}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+            >
+              Sign In
+            </Link>
+          )}
         </div>
 
         {/* Mobile hamburger */}
@@ -98,6 +159,50 @@ export default function Navbar() {
             </Link>
           ))}
 
+          {session?.user ? (
+            <div style={{ borderTop: "1px solid #EEEEEE", paddingTop: "12px", marginTop: "8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: "14px", color: "#717171", paddingLeft: "12px" }}>
+                {session.user.name || session.user.email}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  signOut({ callbackUrl: "/" });
+                }}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: "8px",
+                  border: "1px solid #DDDDDD",
+                  background: "#fff",
+                  color: "#222222",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  cursor: "pointer",
+                }}
+              >
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              onClick={() => setMenuOpen(false)}
+              style={{
+                marginTop: "8px",
+                padding: "10px 12px",
+                borderRadius: "8px",
+                background: "#FF385C",
+                color: "#fff",
+                fontSize: "15px",
+                fontWeight: 600,
+                textAlign: "center",
+                textDecoration: "none",
+              }}
+            >
+              Sign In
+            </Link>
+          )}
         </div>
       )}
 

@@ -84,50 +84,34 @@ export async function GET(req: NextRequest) {
       ],
     };
 
-    // Sort mapping
-    const orderBy: Prisma.CollegeOrderByWithRelationInput =
-      sort === "placement"
-        ? { placementStats: { _count: "desc" } }
-        : sort === "fees_asc"
-        ? { courseFees: { _count: "asc" } }   // proxy — real sort done post-query for fees
-        : sort === "fees_desc"
-        ? { courseFees: { _count: "desc" } }
-        : { nirfRank: "asc" };                 // default: nirf rank ascending (lower = better)
-
-    const [colleges, total] = await Promise.all([
-      prisma.college.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy,
-        select: {
-          id:          true,
-          slug:        true,
-          name:        true,
-          city:        true,
-          state:       true,
-          type:        true,
-          streams:     true,
-          nirfRank:    true,
-          established: true,
-          accreditation: true,
-          courseFees: {
-            select: { annualFee: true },
-            orderBy: { annualFee: "asc" },
-            take: 1,  // lowest fee for display
-          },
-          placementStats: {
-            select: { avgPackage: true, maxPackage: true, placementPct: true },
-            orderBy: { year: "desc" },
-            take: 1,  // latest year only
-          },
+    const colleges = await prisma.college.findMany({
+      where,
+      select: {
+        id:            true,
+        slug:          true,
+        name:          true,
+        city:          true,
+        state:         true,
+        type:          true,
+        streams:       true,
+        nirfRank:      true,
+        established:   true,
+        accreditation: true,
+        courseFees: {
+          select: { annualFee: true },
+          orderBy: { annualFee: "asc" },
+          take: 1, // lowest fee for display
         },
-      }),
-      prisma.college.count({ where }),
-    ]);
+        placementStats: {
+          select: { avgPackage: true, maxPackage: true, placementPct: true },
+          orderBy: { year: "desc" },
+          take: 1, // latest year only
+        },
+      },
+    });
 
     // Flatten for easy frontend consumption
-    const data = colleges.map((c) => ({
+    const flattened = colleges.map((c) => ({
       id:            c.id,
       slug:          c.slug,
       name:          c.name,
@@ -136,18 +120,66 @@ export async function GET(req: NextRequest) {
       type:          c.type,
       streams:       c.streams,
       nirfRank:      c.nirfRank,
+      established:   c.established,
       accreditation: c.accreditation,
-      minAnnualFee:  c.courseFees[0]?.annualFee  ?? null,
-      avgPackage:    c.placementStats[0]?.avgPackage  ?? null,
-      maxPackage:    c.placementStats[0]?.maxPackage  ?? null,
+      minAnnualFee:  c.courseFees[0]?.annualFee ?? null,
+      avgPackage:    c.placementStats[0]?.avgPackage ?? null,
+      maxPackage:    c.placementStats[0]?.maxPackage ?? null,
       placementPct:  c.placementStats[0]?.placementPct ?? null,
     }));
+
+    // Deterministic sorting by actual metric values
+    flattened.sort((a, b) => {
+      if (sort === "placement") {
+        const pkgA = a.avgPackage;
+        const pkgB = b.avgPackage;
+        if (pkgA != null && pkgB != null && pkgA !== pkgB) {
+          return pkgB - pkgA; // descending (highest package first)
+        }
+        if (pkgA != null && pkgB == null) return -1;
+        if (pkgA == null && pkgB != null) return 1;
+      } else if (sort === "fees_asc") {
+        const feeA = a.minAnnualFee;
+        const feeB = b.minAnnualFee;
+        if (feeA != null && feeB != null && feeA !== feeB) {
+          return feeA - feeB; // ascending (cheapest first)
+        }
+        if (feeA != null && feeB == null) return -1;
+        if (feeA == null && feeB != null) return 1;
+      } else if (sort === "fees_desc") {
+        const feeA = a.minAnnualFee;
+        const feeB = b.minAnnualFee;
+        if (feeA != null && feeB != null && feeA !== feeB) {
+          return feeB - feeA; // descending (most expensive first)
+        }
+        if (feeA != null && feeB == null) return -1;
+        if (feeA == null && feeB != null) return 1;
+      } else {
+        // default: "nirf" (lower rank number = better)
+        const rankA = a.nirfRank;
+        const rankB = b.nirfRank;
+        if (rankA != null && rankB != null && rankA !== rankB) {
+          return rankA - rankB; // ascending
+        }
+        if (rankA != null && rankB == null) return -1;
+        if (rankA == null && rankB != null) return 1;
+      }
+
+      // Tie-breakers: NIRF rank then id
+      const tieRankA = a.nirfRank ?? 99999;
+      const tieRankB = b.nirfRank ?? 99999;
+      if (tieRankA !== tieRankB) return tieRankA - tieRankB;
+      return a.id.localeCompare(b.id);
+    });
+
+    const total = flattened.length;
+    const data = flattened.slice(skip, skip + limit);
 
     return NextResponse.json({
       data,
       total,
       page,
-      totalPages: Math.ceil(total / limit),
+      totalPages: Math.ceil(total / limit) || 1,
     });
   } catch (error) {
     console.error("[GET /api/colleges]", error);

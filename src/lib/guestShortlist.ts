@@ -37,3 +37,31 @@ export function isInGuestShortlist(collegeId: string): boolean {
 export function dispatchShortlistChange() {
   window.dispatchEvent(new Event("guest-shortlist-change"));
 }
+
+/**
+ * Migrates any guest shortlist items in localStorage to the authenticated database shortlist.
+ */
+export async function migrateGuestShortlist(): Promise<void> {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return;
+    const items = JSON.parse(raw) as GuestEntry[];
+    if (Array.isArray(items) && items.length > 0) {
+      await Promise.allSettled(
+        items.map((item) =>
+          fetch("/api/shortlist", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ collegeId: item.collegeId }),
+          })
+        )
+      );
+      localStorage.removeItem(KEY);
+      dispatchShortlistChange();
+    }
+  } catch (err) {
+    console.error("Failed to migrate guest shortlist", err);
+  }
+}
+

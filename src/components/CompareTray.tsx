@@ -10,25 +10,23 @@ type Props = {
 };
 
 export default function CompareTray({ shortlisted }: Props) {
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissedCount, setDismissedCount] = useState<number | null>(null);
   const [visible, setVisible] = useState(false);
 
+  const isDismissed = dismissedCount === shortlisted.length;
+
   useEffect(() => {
-    if (shortlisted.length >= 2 && !dismissed) {
+    if (shortlisted.length >= 2 && !isDismissed) {
       // small delay so it slides in after page settles
       const t = setTimeout(() => setVisible(true), 300);
       return () => clearTimeout(t);
     } else {
-      setVisible(false);
+      const t = setTimeout(() => setVisible(false), 0);
+      return () => clearTimeout(t);
     }
-  }, [shortlisted.length, dismissed]);
+  }, [shortlisted.length, isDismissed]);
 
-  // Re-show tray if new college shortlisted after dismissal
-  useEffect(() => {
-    if (shortlisted.length >= 2) setDismissed(false);
-  }, [shortlisted.length]);
-
-  if (shortlisted.length < 2 || dismissed) return null;
+  if (shortlisted.length < 2 || isDismissed) return null;
 
   const compareUrl = `/compare?ids=${shortlisted.map((c) => c.slug).join(",")}`;
 
@@ -105,7 +103,7 @@ export default function CompareTray({ shortlisted }: Props) {
             Compare Now →
           </Link>
           <button
-            onClick={() => setDismissed(true)}
+            onClick={() => setDismissedCount(shortlisted.length)}
             aria-label="Dismiss compare tray"
             style={{
               background: "rgba(255,255,255,0.1)",

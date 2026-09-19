@@ -1,18 +1,40 @@
 import { prisma } from "@/lib/prisma";
-import { latestLastClosingRank } from "@/lib/cutoffs";
+import {
+  latestLastClosingRank,
+  isScoreBasedExam,
+  isPercentileExam,
+} from "@/lib/cutoffs";
 import { NextRequest, NextResponse } from "next/server";
 
 // GET /api/predictor?exam=JEE Advanced&percentile=95&category=General
 export async function GET(req: NextRequest) {
   try {
-    const sp         = req.nextUrl.searchParams;
-    const exam       = sp.get("exam")       ?? "";
-    const percentile = parseFloat(sp.get("percentile") ?? "0");
-    const category   = sp.get("category")  ?? "General";
+    const sp       = req.nextUrl.searchParams;
+    const exam     = (sp.get("exam") ?? "").trim();
+    const rawVal   = sp.get("percentile") ?? sp.get("score") ?? sp.get("rank") ?? "";
+    const category = (sp.get("category") ?? "General").trim();
 
-    if (!exam || !percentile) {
+    if (!exam || !rawVal.trim()) {
       return NextResponse.json(
-        { error: "exam and percentile are required" },
+        { error: "Exam and rank/score/percentile are required." },
+        { status: 400 }
+      );
+    }
+
+    const value = parseFloat(rawVal);
+    if (isNaN(value) || !isFinite(value) || value <= 0) {
+      return NextResponse.json(
+        { error: "Please enter a valid positive number." },
+        { status: 400 }
+      );
+    }
+
+    const isScore = isScoreBasedExam(exam);
+    const isPct = isPercentileExam(exam);
+
+    if (isPct && value > 100) {
+      return NextResponse.json(
+        { error: "Percentile must be between 0 and 100." },
         { status: 400 }
       );
     }
@@ -59,19 +81,17 @@ export async function GET(req: NextRequest) {
 
         const latestYear = Math.max(...cutoffs.map((c) => c.year));
 
-        const isScoreBased = ["BITSAT", "VITEEE", "SRMJEEE", "MET"].some((e) =>
-          exam.toUpperCase().includes(e.toUpperCase())
-        );
-
         let probability: "high" | "medium" | "low";
-        if (isScoreBased) {
-          const diff = percentile - lastClosingRank;
+        if (isScore || isPct) {
+          // Higher score/percentile is better
+          const diff = value - lastClosingRank;
           probability =
             diff >= lastClosingRank * 0.1 ? "high"
             : diff >= 0                    ? "medium"
             : "low";
         } else {
-          const diff = lastClosingRank - percentile;
+          // Lower rank number is better
+          const diff = lastClosingRank - value;
           probability =
             diff >= lastClosingRank * 0.15 ? "high"
             : diff >= 0                    ? "medium"
@@ -85,19 +105,21 @@ export async function GET(req: NextRequest) {
           city:              college.city,
           nirfRank:          college.nirfRank,
           lastClosingRank:   Math.round(lastClosingRank),
+          lastClosingValue:  Math.round(lastClosingRank),
           cutoffYear:        latestYear,
           probability,
+          likelihood:        probability,
           avgPackage:        college.placementStats[0]?.avgPackage ?? null,
           minFee:            college.courseFees[0]?.annualFee     ?? null,
         };
       })
       .filter((r): r is NonNullable<typeof r> => r != null);
 
-    // Sort: high first, then medium, then low
+    // Sort: high likelihood first, then medium, then low
     const order = { high: 0, medium: 1, low: 2 };
     results.sort((a, b) => order[a.probability] - order[b.probability]);
 
-    return NextResponse.json({ exam, percentile, category, results });
+    return NextResponse.json({ exam, percentile: value, category, results });
   } catch (error) {
     console.error("[GET /api/predictor]", error);
     return NextResponse.json({ error: "Prediction failed" }, { status: 500 });

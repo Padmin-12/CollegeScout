@@ -17,10 +17,19 @@ export type CutoffSummary = {
   easiestBranch: string;
   branches: { branch: string; cutoffValue: number }[];
 };
+export function isScoreBasedExam(exam: string): boolean {
+  const upper = exam.toUpperCase();
+  return ["BITSAT", "VITEEE", "SRMJEEE", "MET"].some((e) => upper.includes(e));
+}
+
+export function isPercentileExam(exam: string): boolean {
+  const upper = exam.toUpperCase();
+  return upper.includes("MHT-CET") || upper.includes("PERCENTILE");
+}
 
 /**
- * For rank-based exams, the highest cutoff value across branches = last seat filled
- * (most accessible branch to enter the college).
+ * For rank-based exams, the highest cutoff value across branches = last seat filled.
+ * For score/percentile-based exams, the lowest cutoff value across branches = last seat filled.
  */
 export function summarizeCutoffs(rows: CutoffRow[]): CutoffSummary[] {
   const groups = new Map<string, CutoffRow[]>();
@@ -35,9 +44,11 @@ export function summarizeCutoffs(rows: CutoffRow[]): CutoffSummary[] {
 
   for (const [, group] of groups) {
     const sample = group[0];
+    const isHigherBetter = isScoreBasedExam(sample.exam) || isPercentileExam(sample.exam);
+
     const branches = group
       .map((r) => ({ branch: r.branch || "General", cutoffValue: r.cutoffValue }))
-      .sort((a, b) => b.cutoffValue - a.cutoffValue);
+      .sort((a, b) => (isHigherBetter ? a.cutoffValue - b.cutoffValue : b.cutoffValue - a.cutoffValue));
 
     const easiest = branches[0];
     if (!easiest) continue;
@@ -59,17 +70,20 @@ export function summarizeCutoffs(rows: CutoffRow[]): CutoffSummary[] {
   });
 }
 
-/** Latest year's last closing rank for predictor (any branch). */
+/** Latest year's last closing rank or score for predictor (any branch). */
 export function latestLastClosingRank(rows: CutoffRow[]): number | null {
   if (!rows.length) return null;
   const latestYear = Math.max(...rows.map((r) => r.year));
   const latest = rows.filter((r) => r.year === latestYear);
+  const sampleExam = rows[0]?.exam ?? "";
+  if (isScoreBasedExam(sampleExam) || isPercentileExam(sampleExam)) {
+    return Math.min(...latest.map((r) => r.cutoffValue));
+  }
   return Math.max(...latest.map((r) => r.cutoffValue));
 }
 
 export function cutoffValueLabel(exam: string): string {
-  const upper = exam.toUpperCase();
-  if (upper.includes("MHT-CET") || upper.includes("PERCENTILE")) return "Percentile";
-  if (["BITSAT", "VITEEE", "SRMJEEE", "MET"].some((e) => upper.includes(e))) return "Score";
+  if (isPercentileExam(exam)) return "Percentile";
+  if (isScoreBasedExam(exam)) return "Score";
   return "Closing rank";
 }

@@ -105,7 +105,7 @@ export default function OnboardingModal({ onComplete, onSkip }: Props) {
                 What are you interested in?
               </h2>
               <p style={{ fontSize: "14px", color: "#717171", marginBottom: "24px" }}>
-                We'll show you the most relevant colleges first.
+                We&apos;ll show you the most relevant colleges first.
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "32px" }}>
                 {STREAMS.map((s) => (
@@ -138,7 +138,7 @@ export default function OnboardingModal({ onComplete, onSkip }: Props) {
                 Which exam are you appearing for?
               </h2>
               <p style={{ fontSize: "14px", color: "#717171", marginBottom: "24px" }}>
-                We'll highlight colleges with cutoff data for your exam.
+                We&apos;ll highlight colleges with cutoff data for your exam.
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "32px" }}>
                 {EXAMS.map((e) => (
@@ -171,7 +171,7 @@ export default function OnboardingModal({ onComplete, onSkip }: Props) {
                 What matters most to you?
               </h2>
               <p style={{ fontSize: "14px", color: "#717171", marginBottom: "24px" }}>
-                Drag the sliders — we'll rank colleges accordingly. Total: {placement + fees + location}%
+                Drag the sliders — we&apos;ll rank colleges accordingly. Total: {placement + fees + location}%
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: "20px", marginBottom: "32px" }}>
                 {[

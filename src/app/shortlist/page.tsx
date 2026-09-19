@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Toast from "@/components/Toast";
+import AuthGate from "@/components/AuthGate";
 import {
   getGuestShortlist,
   removeFromGuestShortlist,
@@ -35,46 +36,76 @@ export default function ShortlistPage() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
-  const fetchShortlist = useCallback(async () => {
-    setLoading(true);
-    try {
-      // Get IDs from localStorage
-      const ids = getGuestShortlist().map((e) => e.collegeId);
-      if (ids.length === 0) {
-        setColleges([]);
-        setLoading(false);
-        return;
-      }
-      // Fetch full details from public colleges API
-      const params = new URLSearchParams({ ids: ids.join(","), limit: "100" });
-      const res = await fetch(`/api/colleges?${params.toString()}`);
-      if (res.ok) {
-        const data = await res.json() as { colleges?: ShortlistCollege[] };
-        setColleges(data.colleges ?? []);
-      } else {
-        // Fallback: fetch each college individually
-        const results: ShortlistCollege[] = [];
-        for (const id of ids) {
-          const r = await fetch(`/api/colleges/${id}`);
-          if (r.ok) results.push(await r.json() as ShortlistCollege);
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadShortlist() {
+      try {
+        // Try authenticated database shortlist first
+        const res = await fetch("/api/shortlist/colleges");
+        if (res.ok) {
+          const data = await res.json() as { colleges?: ShortlistCollege[] };
+          if (isMounted) {
+            setColleges(data.colleges ?? []);
+            setLoading(false);
+          }
+          return;
         }
-        setColleges(results);
+
+        // Fallback to guest shortlist IDs from localStorage
+        const ids = getGuestShortlist().map((e) => e.collegeId);
+        if (ids.length === 0) {
+          if (isMounted) {
+            setColleges([]);
+            setLoading(false);
+          }
+          return;
+        }
+
+        const params = new URLSearchParams({ ids: ids.join(","), limit: "100" });
+        const pubRes = await fetch(`/api/colleges?${params.toString()}`);
+        if (pubRes.ok) {
+          const data = await pubRes.json() as { colleges?: ShortlistCollege[] };
+          if (isMounted) setColleges(data.colleges ?? []);
+        } else {
+          const results: ShortlistCollege[] = [];
+          for (const id of ids) {
+            const r = await fetch(`/api/colleges/${id}`);
+            if (r.ok) results.push(await r.json() as ShortlistCollege);
+          }
+          if (isMounted) setColleges(results);
+        }
+      } catch {
+        if (isMounted) {
+          setToast({ message: "Could not load shortlist", type: "error" });
+        }
+      } finally {
+        if (isMounted) setLoading(false);
       }
-    } catch {
-      setToast({ message: "Could not load shortlist", type: "error" });
-    } finally {
-      setLoading(false);
     }
+
+    loadShortlist();
+
+    const handler = () => {
+      loadShortlist();
+    };
+    window.addEventListener("guest-shortlist-change", handler);
+    return () => {
+      isMounted = false;
+      window.removeEventListener("guest-shortlist-change", handler);
+    };
   }, []);
 
-  useEffect(() => {
-    fetchShortlist();
-    // Re-fetch when shortlist changes
-    window.addEventListener("guest-shortlist-change", fetchShortlist);
-    return () => window.removeEventListener("guest-shortlist-change", fetchShortlist);
-  }, [fetchShortlist]);
-
-  function remove(collegeId: string) {
+  async function remove(collegeId: string) {
+    try {
+      await fetch("/api/shortlist", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ collegeId }),
+      });
+    } catch (err) {
+      console.error("Failed to delete from DB shortlist", err);
+    }
     removeFromGuestShortlist(collegeId);
     setColleges((prev) => prev.filter((c) => c.id !== collegeId));
     dispatchShortlistChange();
@@ -84,7 +115,7 @@ export default function ShortlistPage() {
   // Loading
   if (loading) {
     return (
-      <>
+      <AuthGate feature="Shortlist">
         <Navbar />
         <main style={{ minHeight: "100vh", background: "#fff" }}>
           <div style={{ maxWidth: "900px", margin: "0 auto", padding: "40px 24px 80px" }}>
@@ -97,12 +128,12 @@ export default function ShortlistPage() {
             </div>
           </div>
         </main>
-      </>
+      </AuthGate>
     );
   }
 
   return (
-    <>
+    <AuthGate feature="Shortlist">
       <Navbar />
       <main style={{ minHeight: "100vh", background: "#fff" }}>
         <div style={{ maxWidth: "900px", margin: "0 auto", padding: "40px 24px 80px" }}>
@@ -247,6 +278,6 @@ export default function ShortlistPage() {
       {toast && (
         <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
       )}
-    </>
+    </AuthGate>
   );
 }
